@@ -1,0 +1,173 @@
+在任何地方卡住，最快的办法就是去看示例代码。
+
+
+体验牛逼闪闪的 Auth 系统
+php artisan make:auth
+
+修改配置
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel5
+DB_USERNAME=root
+DB_PASSWORD=password
+
+进行数据库迁移（migration）
+php artisan migrate //迁移系统自带的数据表
+
+php artisan make:model Article//新建 Model 类及其附属的 Migration 和 Seeder（数据填充）类。
+
+
+php artisan make:model Comment -m //建立模型和数据表
+
+用 migration 建立了数据表并使用 seeder 填入测试数据
+
+
+php artisan make:migration create_article_table创建数据表
+public function up()
+{
+    Schema::create('articles', function(Blueprint $table)
+    {
+	//表的结构
+        $table->increments('id');//字段及字段类型
+        $table->string('title');
+        $table->text('body')->nullable();
+        $table->integer('user_id');
+        $table->timestamps();
+    });
+}
+php artisan migrate//执行迁移，导入到数据表中
+
+填入假数据
+php artisan make:seeder ArticleSeeder
+public function run()
+{
+    DB::table('articles')->delete();
+    //循环导入条数
+    for ($i=0; $i < 10; $i++) {
+        \App\Article::create([
+            'title'   => 'Title '.$i,
+            'body'    => 'Body '.$i,
+            'user_id' => 1,
+        ]);
+    }
+}
+把 ArticleSeeder 注册到系统内。修改 learnlaravel5/database/seeds/DatabaseSeeder.php 中的 run 函数为：
+public function run()
+{
+    $this->call(ArticleSeeder::class);
+}
+
+我们还需要运行以下命令把 ArticleSeeder.php 加入自动加载系统，避免找不到类的错误：composer dump-autoload
+
+然后执行 seed：
+
+php artisan db:seed
+
+=======================================================================================================
+
+显式路由配置
+Route::get('/', 'HomeController@index');
+
+blade
+@extends('layouts.app')
+
+Laravel 中向视图传数据非常简单：return view('home')->withArticles(\App\Article::all());
+
+RESTful 资源控制器
+资源控制器是 Laravel 内部的一种功能强大的约定，它约定了一系列对某一种资源进行“增删改查”操作的路由配置，让我们不再需要对每一项需要管理的资源都写 N 行重复形式的路由
+Route::resource('photo', 'PhotoController');
+
+view() 方法是 Laravel 中一个全局的方法，用于调用视图文件，他接受一个字符串参数，并会按照这个参数去调取对应的路由，这很容易理解
+'admin/article/create' 跟 'admin.article.create' 是等价的
+
+路由匹配方式为前置匹配：任何一条路由规则匹配成功，会立刻返回结果，后面的路由便没有了机会。
+
+php artisan make:controller CommentController
+
+php artisan make:controller Admin/HomeController
+
+Route::post('comment', 'CommentController@store');
+
+Route::get('article/{id}', 'ArticleController@show');
+
+=======================================================================================================
+laravel-admin后台模板生成对应的控制器命令
+
+添加控制器
+
+php artisan admin:make UserController --model=App\User
+
+生成的控制器位于app/Admin/Controllers/UserController.php。
+
+在app/Admin/routes.php中添加路由：
+
+$router->resource('users', UserController::class);
+
+=======================================================================================================
+
+APP目录：
+
+app_path();
+
+config目录：
+
+config_path();
+ 
+public目录：
+
+public_path(); 
+
+storage目录：
+
+storage_path();
+
+
+①视图中的href跳转
+
+一、<a href="{{ url('home/test') }}">
+
+区别：最方便，但路由改变时就又要修改了
+
+二、<a href="{{ route('test') }}">   
+
+区别：可直接命名使用，不因uri改变而改变，我喜欢用
+
+laravel 5 自定义全局函数
+
+在app/Helpers/(目录可以自己随便来) 下新建一个文件 functions.php 
+在functions.php 中加入这个方法
+然后在
+bootstrap/autoload.php 中添加
+require __DIR__.'/../app/Helpers/functions.php';
+或者在composer.json 中的 autoload 下增加
+"files": [
+    "app/Helpers/functions.php"
+]
+...
+"autoload": {
+    "classmap": [
+        "database"
+    ],
+    "psr-4": {
+        "App\\": "app/"
+    },
+    "files": [
+        "app/helpers/functions.php"
+    ]
+},
+
+...
+然后执行：
+composer dump-auto 也可以在 app\Providers\AppServiceProvider.php
+
+public function boot() {
+    \Carbon\Carbon::setLocale('zh');
+    /**
+     * 加载自定义函数库
+     */
+    require app_path('Common/functions.php');
+
+
+静态文件路径使用asset('js/app.js');
+
+引入公共头文件@include('layouts.header') 

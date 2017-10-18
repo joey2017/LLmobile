@@ -41,41 +41,37 @@ class BizController extends Controller
     }
 
     public function entrance(Request $request){
-        /*if(!session('account_info')){
+        if(!session('account_info')){
             header("Location:".url("biz/login"));
-        }*/
+        }
         $account_info = session('account_info');
+        // var_dump($account_info);die;
 
-        // $id=intval($_REQUEST['id']);
         $id = $request->input('id');
 
         $n_location_name = 'sss';
         $n_location_id = 6;
 
-        if($account_info['allow_delivery']=='1'){
-            $w=" in(".implode(',', $account_info['location_ids']).")";
-        }else{
-            $w=" =".$account_info['location_ids'][0];
-        }
-        var_dump($account_info);exit;
-
         //门店名称
-        // $location_names=M()->query("select id,name from fw_supplier_location where id".$w);
-        $location_names = DB::select('select id,name from fw_supplier_location where id = :id', ['id' => $w]);
-        return $location_names;
+        if($account_info['allow_delivery']=='1'){
+            $location_names = DB::table('supplier_location')->whereIn('id',$account_info['location_ids'])->get();
+        }else{
+            $location_names = DB::table('supplier_location')->where('id',$account_info['location_ids'][0])->first();
+        }
+
         $location_names = $this->objectToArray($location_names);
+        // var_dump($location_names);die;
 
         if($account_info['allow_delivery']=='1'){
             $n_location_name='全部门店';
         }else{
-            $n_location_name=$location_names[0]['name'];
+            $n_location_name = $location_names['name'];
         }
         $n_location_id='';
 
         if(!in_array($id,$account_info['location_ids'])){
             $id='';
         }else{
-            $w=" =".$id;
             $n_location_id=$id;
             foreach ($location_names as $k => $v) {
                 if($v['id']==$id){

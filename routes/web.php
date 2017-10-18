@@ -17,6 +17,8 @@ Route::get('/', 'BizController@index');
 Route::get('/biz/entrance', 'BizController@entrance');
 Route::get('/biz/login', 'BizController@login');
 Route::get('/purchase/home', 'PurchaseController@home');
+// Route::get('/purchase/detail/', 'PurchaseController@detail');
+Route::get('/purchase/detail/{id}','PurchaseController@detail');
 Route::get('/purchase/ajax_get_qualitygoods', 'PurchaseController@ajax_get_qualitygoods');
 Route::get('/purchase/index', 'PurchaseController@index');
 /*Route::get('/biz/ajax_login', function() {

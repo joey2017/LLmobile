@@ -319,32 +319,38 @@ class PurchaseController extends Controller
     }
 
     //采购商品详情
-    public function detail()
+    public function detail(Request $request)
     {
-        $id=intval($_GET['id']);
+        // $id=intval($_GET['id']);
+        // $id = $request->input('id');
+        // $request->route( 'id' );  or  $request->id;
+        $id = $request->id;
         if(!session('account_info')){
-            session('redirect_url',U('Purchase/detail',array('id'=>$id)));
-            header("Location:".U("Biz/login"));
-
+            session('redirect_url',url('purchase/detail',array('id'=>$id)));
+            header("Location:".url("biz/login"));
         }
 
-        
-
-        $where=" and pg.id=".$id;
-
+        //开启日志查询
+        DB::enableQueryLog();
         //详情信息
-        $info=M('pms_goods as pg')->join('fw_pms_goods_attr as fpga on fpga.goods_id=pg.id')->join('fw_pms_supplier as fps on fps.id=pg.supplier_id')->field('pg.id,pg.goods_name,pg.unit,pg.sales,pg.thumbnail,pg.price,pg.stock,pg.promotion_price,pg.market_price,pg.detail,pg.imgs,pg.car_ids,fpga.attr_val,fpga.attr_name_val,fps.name as supplier_name,fps.qq')->where('pg.is_sale=1 and pg.is_del=0 '.$where)->find();
-        if(!$info){
+        $info = DB::table('pms_goods as pg')
+        ->leftJoin('pms_goods_attr as fpga','fpga.goods_id','=','pg.id')
+        ->leftJoin('pms_supplier as fps','fps.id','=','pg.supplier_id')
+        ->select('pg.id','pg.goods_name','pg.unit','pg.sales','pg.thumbnail','pg.price','pg.stock','pg.promotion_price','pg.market_price','pg.detail','pg.imgs','pg.car_ids','fpga.attr_val','fpga.attr_name_val','fps.name as supplier_name','fps.qq','pg.class_id')
+        ->where([['pg.is_sale','=',1],['pg.is_del','=',0],['pg.id','=',$id]])
+        ->first();
+        // dd(lastSql());
+        $info = objectToArray($info);
+        // dd($info);
+        /*if(!$info){
             $this->error('商品不存在或已下架',U('Purchase/index'),3);
-        }
+            return redirect('home/dashboard');
 
-        $info['imgs']=array_values(array_filter(explode(',',$info['imgs'])));
+        }*/
 
-
-        // if($info['promotion_price']>0){
-        //  $info['price']=$info['promotion_price'];
-        // }
-        $info['detail']=str_replace('src="/ueditor/','src="http://www.17cct.com/ueditor/',$info['detail']);
+        $info['imgs']   = array_values(array_filter(explode(',',$info['imgs'])));
+        
+        $info['detail'] = str_replace('src="/ueditor/','src="http://www.17cct.com/ueditor/',$info['detail']);
         $attr_val=explode(',',$info['attr_name_val']);  
 
         foreach ($attr_val as $k => $v) {
@@ -386,7 +392,14 @@ class PurchaseController extends Controller
         
         //适用车型
         if($info['car_ids']){
-            $car_list = M('car')->field('id,name,parent_id,level')->where('level in(0,1,2) and id in('.$info['car_ids'].')')->select();
+            // $car_list = M('car')->field('id,name,parent_id,level')->where('level in(0,1,2) and id in('.$info['car_ids'].')')->select();
+            $car_list = DB::table('car')->select('id','name','parent_id','level')
+            ->whereIn('level',[0,1,2])
+            ->whereIn('id',$info['car_ids'])
+            ->get();
+            //将对象转换成数组
+            $car_list = get_object_vars($car_list);
+            dd($car_list);
             if($car_list){
                 foreach ($car_list as $k => $v) {
                     if($v['level'] == 1){
@@ -401,14 +414,20 @@ class PurchaseController extends Controller
                 }
             }
         }
-        $cart_info=$this->get_location_cart_info();
-        $this->assign('cart_num',intval($cart_info['number']));
-        $this->assign("attr_vals",$attr_vals);
-        $this->assign("attr_names",$attr_names);
-        $this->assign("car",$car);
-        $this->assign('info',$info);
-        $this->assign('title',$info['goods_name']);
-        $this->display();
+        $cart_info = $this->get_location_cart_info();
+        $cart_info = get_object_vars($cart_info);
+        // dd($cart_info);
+        $cart_num  = intval($cart_info['number']);
+        $title     = $info['goods_name'];
+        $no_include = 0;
+        // $this->assign('cart_num',intval($cart_info['number']));
+        // $this->assign("attr_vals",$attr_vals);
+        // $this->assign("attr_names",$attr_names);
+        // $this->assign("car",$car);
+        // $this->assign('info',$info);
+        // $this->assign('title',$info['goods_name']);
+        // $this->display();
+        return view('purchase/detail',compact('cart_num','attr_vals','attr_names','car','info','title','no_include'));
     }
 
     //加入购物车
@@ -1728,14 +1747,17 @@ class PurchaseController extends Controller
 
     //获取门店购物车中的商品数量
     public function get_location_cart_info(){
-        $location_id=$this->get_location_ids();     
-        $info=M()->query("select sum(number) as number,sum(price*number) as total_price from fw_pms_erp_cart where location_id=".$location_id." limit 1");
+        $location_id = $this->get_location_ids();     
+        // $info=M()->query("select sum(number) as number,sum(price*number) as total_price from fw_pms_erp_cart where location_id=".$location_id." limit 1");
+        $info = DB::select("select sum(number) as number,sum(price*number) as total_price from fw_pms_erp_cart where location_id=? limit 1",[$location_id]);
+        // dd($info);
+        // $info = get_object_vars($info);
         return $info[0];
     }
 
     //返回当前登录门店id
     public function get_location_ids(){
-        $account_info=session('account_info');
+        $account_info = session('account_info');
         return $account_info['location_ids'][0];
     }
 

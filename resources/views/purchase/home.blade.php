@@ -90,7 +90,7 @@ body{position: relative;}
 			MsgBox('请输入关键词搜索');
 			return false;
 		}
-		window.location.href="{{url('Purchase/search')}}?keyword="+k;
+		window.location.href="{{url('purchase/search')}}?keyword="+k;
 	})
 </script>
 

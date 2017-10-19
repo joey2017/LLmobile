@@ -8,8 +8,8 @@ if (!function_exists('objectToArray')) {
     }
 }
 
-if (!function_exists('lastSql')) {
-    function lastSql(){
+if (!function_exists('getLastSql')) {
+    function getLastSql(){
         $sql = DB::getQueryLog();
         $query = end($sql);
         return $query;

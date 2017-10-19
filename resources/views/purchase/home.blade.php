@@ -68,7 +68,7 @@ body{position: relative;}
 
 <div class="topsearch col-xs-12 box_flex">
 	<div class="uearbtn">
-		<a href="{{url('Biz/shop_count')}}" class="btn-block"><span class="purchasesvg"></span> 用户中心</a>
+		<a href="{{url('biz/shop_count')}}" class="btn-block"><span class="purchasesvg"></span> 用户中心</a>
 	</div>
 	<div class="flex1 searchtab">
 		<span></span>
@@ -124,28 +124,28 @@ body{position: relative;}
 <!-- 导航 -->
 <div class="p_menu tab_parent o_f">
 	<div class="col-xs-3 tab_subset">
-		<a href="{{url('Purchase/index',array('t'=>2))}}" class="btn-block"><span class="purindex pcolor01"></span>轮胎</a>
+		<a href="{{url('purchase/index',array('t'=>2))}}" class="btn-block"><span class="purindex pcolor01"></span>轮胎</a>
 	</div>
 	<div class="col-xs-3 tab_subset">
-		<a href="{{url('Purchase/index',array('t'=>5))}}" class="btn-block"><span class="purindex pcolor05"></span>轮毂</a>
+		<a href="{{url('purchase/index',array('t'=>5))}}" class="btn-block"><span class="purindex pcolor05"></span>轮毂</a>
 	</div>
 	<div class="col-xs-3 tab_subset">
-		<a href="{{url('Purchase/index',array('t'=>6))}}" class="btn-block"><span class="purindex pcolor02"></span>润滑油</a>
+		<a href="{{url('purchase/index',array('t'=>6))}}" class="btn-block"><span class="purindex pcolor02"></span>润滑油</a>
 	</div>
 	<div class="col-xs-3 tab_subset">
-		<a href="{{url('Purchase/index',array('t'=>8))}}" class="btn-block"><span class="purindex pcolor03"></span>电瓶</a>
+		<a href="{{url('purchase/index',array('t'=>8))}}" class="btn-block"><span class="purindex pcolor03"></span>电瓶</a>
 	</div>
 	<div class="col-xs-3 tab_subset">
-		<a href="{{url('Purchase/class_list',array('t'=>16))}}" class="btn-block"><span class="purindex pcolor04"></span>美容</a>
+		<a href="{{url('purchase/class_list',array('t'=>16))}}" class="btn-block"><span class="purindex pcolor04"></span>美容</a>
 	</div>
 	<div class="col-xs-3 tab_subset">
-		<a href="{{url('Purchase/class_list',array('t'=>9))}}" class="btn-block"><span class="purindex pcolor06"></span>养护</a>
+		<a href="{{url('purchase/class_list',array('t'=>9))}}" class="btn-block"><span class="purindex pcolor06"></span>养护</a>
 	</div>
 	<div class="col-xs-3 tab_subset">
-		<a href="{{url('Purchase/index',array('t'=>27))}}" class="btn-block"><span class="purindex pcolor07"></span>精品</a>
+		<a href="{{url('purchase/index',array('t'=>27))}}" class="btn-block"><span class="purindex pcolor07"></span>精品</a>
 	</div>
 	<div class="col-xs-3 tab_subset">
-		<a href="{{url('Purchase/class_list',array('t'=>0))}}" class="btn-block"><span class="purindex pcolor08"></span>全部分类</a>
+		<a href="{{url('purchase/class_list',array('t'=>0))}}" class="btn-block"><span class="purindex pcolor08"></span>全部分类</a>
 	</div>
 </div>
 
@@ -199,7 +199,7 @@ body{position: relative;}
 
 </div>
 
-<div class="purchase_index"><a class="btn-block" href="{{url('Purchase/home')}}"></a></div>
+<div class="purchase_index"><a class="btn-block" href="{{url('purchase/home')}}"></a></div>
 
 </div>
 

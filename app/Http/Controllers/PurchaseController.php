@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class PurchaseController extends Controller
+class purchaseController extends Controller
 {
     //采购主页
     public function home(){
@@ -87,7 +87,7 @@ class PurchaseController extends Controller
 
             $html .= '<div class="col-xs-6 tab_subset producttab">
                 <div class="proinfo">
-                    <a href="'.url('Purchase/detail',array('id'=>$g['id'])).'" class="btn-block">
+                    <a href="'.url('purchase/detail',array('id'=>$g['id'])).'" class="btn-block">
                         <img src="'.$g['thumbnail'].'!purchase">
                         <p>'.$g['goods_name'].'</p>
                         <div class="d-main">
@@ -105,8 +105,9 @@ class PurchaseController extends Controller
         return $html;
     }
 
-    public function class_list(){
-        $t=intval($_REQUEST['t']);
+    public function class_list(Request $request){
+        $t = intval($_REQUEST['t']);
+        $t = $request->input('t');
         $list=M('pms_class')->where('is_del=0')->order('sort asc')->select();
         foreach ($list as $k => $v) {
             if($v['pid']==0){
@@ -122,15 +123,19 @@ class PurchaseController extends Controller
     }
 
     //首页搜索
-    public function search(){
+    public function search(Request $request){
+        // Input::get('book');
         if(!session('account_info')){           
-            session('redirect_url',U('Purchase/search'));
-            header("Location:".U("Biz/login"));
+            session('redirect_url',url('purchase/search'));
+            header("Location:".url("biz/login"));
         }
-        $keyword=trim($_REQUEST['keyword']);
-        $this->assign('keyword',$keyword);
-        $this->assign('title','诚车堂-订货管理小助手！');
-        $this->display();
+        // $keyword = trim($_REQUEST['keyword']);
+        $keyword = $request->input('keyword');
+        // $this->assign('keyword',$keyword);
+        // $this->assign('title','诚车堂-订货管理小助手！');
+        // $this->display();
+        $title = '诚车堂-订货管理小助手！';
+        return view('purchase.search',compact('keyword','title'));
     }
 
 
@@ -343,7 +348,7 @@ class PurchaseController extends Controller
         $info = objectToArray($info);
         // dd($info);
         /*if(!$info){
-            $this->error('商品不存在或已下架',U('Purchase/index'),3);
+            $this->error('商品不存在或已下架',U('purchase/index'),3);
             return redirect('home/dashboard');
 
         }*/
@@ -379,7 +384,11 @@ class PurchaseController extends Controller
                 }
             }
             $attr_names[]=$value[0];
-            $attr_vals[]=$value[1];
+            if(isset($value[1])){
+                $attr_vals[]=$value[1];
+            }else{
+                $attr_vals[]='';
+            }
         }
         
         if($info['class_id']==2){
@@ -431,105 +440,108 @@ class PurchaseController extends Controller
     }
 
     //加入购物车
-    public function add_card(){
-        $cart['goods_id']=intval($_POST['goods_id']);
-        $goods_info=M('pms_goods')->field('id,goods_name,price,supplier_id,promotion_price')->where('is_del=0 and id=0'.$cart['goods_id'])->find();
+    public function add_card(Request $request){
+        $cart['goods_id'] = $request->input('goods_id');
+        // $cart['goods_id']=intval($_POST['goods_id']);
+        // $goods_info=M('pms_goods')->field('id,goods_name,price,supplier_id,promotion_price')->where('is_del=0 and id=0'.$cart['goods_id'])->find();
+        $goods_info = DB::table('pms_goods')->select('id','goods_name','price','supplier_id','promotion_price')
+        ->where([['is_del',0],['id','0'.$cart['goods_id']]])->first();
+        $goods_info = get_object_vars($goods_info);
     
         if(!$goods_info){
-            $result['status']=0;
-            $result['info']='商品不存在或已下架';
-            $this->ajaxReturn($result); 
+            $result['status'] = 0;
+            $result['info']   = '商品不存在或已下架';
+            return json_encode($result); 
         }
 
-        $cart['number']=intval($_POST['goods_num']);
+        $cart['number'] = $request->input('goods_num');
 
         if($cart['number']<=0){
-            $result['status']=0;
-            $result['info']='购买商品至少为1件';
-            $this->ajaxReturn($result);
+            $result['status'] = 0;
+            $result['info']   = '购买商品至少为1件';
+            return json_encode($result); 
         }
         
-        $location_id=$this->get_location_ids();
+        $location_id = $this->get_location_ids();
         if(!$location_id){
-            $result['status']=-1;
-            $result['info']='请先登录后再加入购物车';
-            $result['url']=U('Biz/login');
-            $this->ajaxReturn($result);
+            $result['status'] = -1;
+            $result['info']   = '请先登录后再加入购物车';
+            $result['url']    = url('biz/login');
+            return json_encode($result); 
         }
 
         //判断商品是否已添加过在购物车
-        $goods_cart_info=M('pms_erp_cart')->field('id,number')->where('goods_id='.$cart['goods_id'].' and location_id='.$location_id)->find();
-
+        // $goods_cart_info=M('pms_erp_cart')->field('id,number')->where('goods_id='.$cart['goods_id'].' and location_id='.$location_id)->find();
+        $goods_cart_info = DB::table('pms_erp_cart')->select('id','number')
+        ->where([['goods_id',$cart['goods_id']],['location_id',$location_id]])->first();
+        $goods_cart_info = get_object_vars($goods_cart_info);
         if($goods_cart_info){           
 
             //判断商品库存
-            $stock_info=$this->goods_stock_info($cart['goods_id'],$cart['number']);
+            $stock_info = $this->goods_stock_info($cart['goods_id'],$cart['number']);
 
-            /*if($stock_info<0){
-                $result['status']=0;
-                $result['info']='商品库存不足';
-                $this->ajaxReturn($result);
-            }*/
-
-            $update_cart['number']=intval($goods_cart_info['number'])+intval($cart['number']);
-            $r=M('pms_erp_cart')->where('id='.$goods_cart_info['id'])->save($update_cart);          
+            $update_cart['number'] = intval($goods_cart_info['number']) + intval($cart['number']);
+            // $r=M('pms_erp_cart')->where('id='.$goods_cart_info['id'])->save($update_cart);          
+            $r = DB::table('pms_erp_cart')->where('id',$goods_cart_info['id'])->update($update_cart);          
         }else{
 
             //判断商品库存
-            $stock_info=$this->goods_stock_info($cart['goods_id'],$cart['number']);
+            $stock_info = $this->goods_stock_info($cart['goods_id'],$cart['number']);
 
-            /*if($stock_info<0){
-                $result['status']=0;
-                $result['info']='商品库存不足';
-                $this->ajaxReturn($result);
-            }*/
-
-            $cart['goods_name']=$goods_info['goods_name'];
-            $cart['price']=$goods_info['promotion_price']>0?$goods_info['promotion_price']:$goods_info['price'];
-            $cart['supplier_id']=$goods_info['supplier_id'];
-            $cart['location_id']=$location_id;
-            $cart['create_time']=time();
-            $r=M('pms_erp_cart')->add($cart);
+            $cart['goods_name']  = $goods_info['goods_name'];
+            $cart['price']       = $goods_info['promotion_price']>0?$goods_info['promotion_price']:$goods_info['price'];
+            $cart['supplier_id'] = $goods_info['supplier_id'];
+            $cart['location_id'] = $location_id;
+            $cart['create_time'] = time();
+            $r = DB::table('pms_erp_cart')->insert($cart);
         }       
 
         if($r){
-            $cart_info=$this->get_location_cart_info();
-            $result['status']=1;
-            $result['stock']=$cart_info['number'];//购物车中的商品数量
-            $result['info']='加入购物车成功';          
+            $cart_info        = $this->get_location_cart_info();
+            $result['status'] = 1;
+            $result['stock']  = $cart_info->number;//购物车中的商品数量
+            $result['info']   = '加入购物车成功';          
         }else{
-            $result['status']=0;
-            $result['info']='加入购物车失败';
+            $result['status'] = 0;
+            $result['info']   = '加入购物车失败';
         }
-        $this->ajaxReturn($result);
+        // $this->ajaxReturn($result);
+        return json_encode($result);
     }
 
     //购物车管理
     public function cart(){
 
-        $location_id=$this->get_location_ids();
+        $location_id = $this->get_location_ids();
 
-        $info=M()->query("select pg.thumbnail,pg.stock,pec.*,ps.name,pga.attr_name_val from fw_pms_erp_cart as pec left join fw_pms_goods as pg on pg.id=pec.goods_id left join fw_pms_supplier as ps on ps.id=pg.supplier_id left join fw_pms_goods_attr as pga on pga.goods_id=pg.id  where  pec.location_id=".intval($location_id));
-        
-
+        // $info = M()->query("select pg.thumbnail,pg.stock,pec.*,ps.name,pga.attr_name_val from fw_pms_erp_cart as pec left join fw_pms_goods as pg on pg.id=pec.goods_id left join fw_pms_supplier as ps on ps.id=pg.supplier_id left join fw_pms_goods_attr as pga on pga.goods_id=pg.id  where  pec.location_id=".intval($location_id));
+        $info = DB::select("select pg.thumbnail,pg.stock,pec.*,ps.name,pga.attr_name_val from fw_pms_erp_cart as pec left join fw_pms_goods as pg on pg.id=pec.goods_id left join fw_pms_supplier as ps on ps.id=pg.supplier_id left join fw_pms_goods_attr as pga on pga.goods_id=pg.id where pec.location_id=?",[intval($location_id)]);
+        // dd($info);
+        // $info = get_object_vars($info);
+        $total['price'] = 0;
+        $total['count'] = 0;
+        $info = objectToArray($info);
+        // dd($info);
         foreach ($info as $k => $v) {
-            $v['total_price']=$v['price']*$v['number'];
-            $total['price']+=$v['total_price'];
-            $total['count']+=$v['number'];
-            $v['attr_name']=explode(',',$v['attr_name_val']);
-            $v['change_stock']=intval($v['stock']);//操作库存
-            $v['stock']=$this->goods_stock_info($v['goods_id'],0);//显示库存            
-            $cart_info[$v['name']]['item'][]=$v;
-            $cart_info[$v['name']]['supplier_id']=$v['supplier_id'];
+            $v['total_price']                     = $v['price']*$v['number'];
+            $total['price']                       += $v['total_price'];
+            $total['count']                       += $v['number'];
+            $v['attr_name']                       = explode(',',$v['attr_name_val']);
+            $v['change_stock']                    = intval($v['stock']);//操作库存
+            $v['stock']                           = $this->goods_stock_info($v['goods_id'],0);//显示库存            
+            $cart_info[$v['name']]['item'][]      = $v;
+            $cart_info[$v['name']]['supplier_id'] = $v['supplier_id'];
         }
 
         //商品活动输出
         // $total['price']=round($total['price'],2);
         // $total['count']=intval($total['count']);
-        $this->assign('total',$total);
-        $this->assign('cart_info',$cart_info);
-        $this->assign('title','诚车堂-订货管理小助手！');
-        $this->display();
+        // $this->assign('total',$total);
+        // $this->assign('cart_info',$cart_info);
+        // $this->assign('title','诚车堂-订货管理小助手！');
+        // $this->display();
+        $title = '诚车堂-订货管理小助手！';
+        return view('purchase.cart',compact('total','cart_info','title'));
     }
 
 
@@ -611,100 +623,146 @@ class PurchaseController extends Controller
     }
 
     //检查订单
-    public function check_order(){
+    public function check_order(Request $request){
 
         if(!session('account_info')){
-            session('redirect_url',U('Purchase/check_order'));
-            header("Location:".U("Biz/login"));
+            session('redirect_url',url('purchase/check_order'));
+            header("Location:".url("biz/login"));
         }
 
-        $ids=substr($_GET['ids'],0,-1);
+        // $id_string = substr($_GET['ids'],0,-1);
+        $id_string = $request->input('ids');
+        // dd($ids);
+        $ids = explode(',',$_GET['ids']);
 
         $location_id = $this->get_location_ids();
-
-
-        $cart_info = M('pms_erp_cart')->where('location_id='.$location_id." and id in(".$ids.")")->getField('id');      
-        
-        
+        // DB::enableQueryLog();
+        // $cart_info = M('pms_erp_cart')->where('location_id='.$location_id." and id in(".$ids.")")->getField('id');      
+        $cart_info = DB::table('pms_erp_cart')->whereIn('id',$ids)->where('location_id',$location_id)->select('id')->get();
+        // dd(lastSql());      
+        $cart_info = objectToArray($cart_info);
+        // dd($cart_info);        
         if(!$cart_info){
-            $this->error('购物车还没有商品',U('Purchase/index'),3);
+            // $this->error('购物车还没有商品',U('purchase/index'),3);
+            redirect('purchase/index');
         }
 
-        session('cart_ids',$_GET['ids']);
+        // session(['cart_ids'=>$id_string]);
+        // $request->session()->push('cart_ids', $id_string);
+        $request->session()->put('cart_ids', $id_string);
+
 
         //地址
-        $address = M('pms_address')->where('is_default=1 and location_id='.$location_id)->find();       
-            
-        //购物车商品信息
-        $goods_info =M()->query("select pg.thumbnail,pg.price as goods_price,pg.promotion_price,pg.stock,pg.unit,pec.*,ps.name,pga.attr_name_val from fw_pms_erp_cart as pec left join fw_pms_goods as pg on pg.id=pec.goods_id left join fw_pms_supplier as ps on ps.id=pg.supplier_id left join fw_pms_goods_attr as pga on pga.goods_id=pg.id  where  pec.location_id=".intval($location_id)." and pec.id in(".$ids.")");
+        // $address = M('pms_address')->where('is_default=1 and location_id='.$location_id)->find();       
+        $address = DB::table('pms_address')->where([['is_default',1],['location_id',$location_id]])->first();
+
+        // dd($address);       
         
+        // DB::enableQueryLog(); 
+
+        //购物车商品信息
+        // $goods_info =DB::select("select pg.thumbnail,pg.price as goods_price,pg.promotion_price,pg.stock,pg.unit,pec.*,ps.name,pga.attr_name_val from fw_pms_erp_cart as pec left join fw_pms_goods as pg on pg.id=pec.goods_id left join fw_pms_supplier as ps on ps.id=pg.supplier_id left join fw_pms_goods_attr as pga on pga.goods_id=pg.id where pec.location_id=? and pec.id in(?)",[intval($location_id),$ids]);
+        // dd(getLastSql());
+        // dd($goods_info);
+        $goods_info = DB::table('pms_erp_cart as pec')
+        ->select('pg.thumbnail','pg.price as goods_price','pg.promotion_price','pg.stock','pg.unit','pec.*','ps.name','pga.attr_name_val')
+        ->leftJoin('pms_goods as pg','pg.id','=','pec.goods_id')
+        ->leftJoin('pms_supplier as ps','ps.id','=','pg.supplier_id')
+        ->leftJoin('pms_goods_attr as pga','pga.goods_id','=','pg.id')
+        ->where('pec.location_id',intval($location_id))
+        ->whereIn('pec.id',$ids)
+        ->get();
+        $goods_info = objectToArray($goods_info);
+        // dd($goods_info);
+        $total['price'] = 0;
+        $total['count'] = 0;
+        $datas = [];
+        $goods = [];
+        $p = [];
         foreach ($goods_info as $k => $v) {
             //使用最新价格，如果有促销价则使用促销价
-            $v['price'] = $v['promotion_price']>0 ? $v['promotion_price'] : $v['goods_price'];
-            $p[$v['supplier_id']]['total_price'] += $v['price']*$v['number'];
-            $v['total_price'] = $p[$v['supplier_id']]['total_price'];
-            $v['attr_name'] = explode(',',$v['attr_name_val']);
-            $goods[$v['supplier_id']][] = $v;
-            $total['price'] += $v['price']*$v['number'];
-            $total['count'] += $v['number'];
+            $v['price']                             = $v['promotion_price']>0 ? $v['promotion_price'] : $v['goods_price'];
+            if(isset($p[$v['supplier_id']]['total_price'])){
+                $p[$v['supplier_id']]['total_price']    += $v['price']*$v['number'];
+            }else{
+                $p[$v['supplier_id']]['total_price'] = $v['price']*$v['number'];
+            }
+            $v['total_price']                       = $p[$v['supplier_id']]['total_price'];
+            $v['attr_name']                         = explode(',',$v['attr_name_val']);
+            $goods[$v['supplier_id']][]             = $v;
+            $total['price']                         += $v['price']*$v['number'];
+            $total['count']                         += $v['number'];
             $datas[$v['supplier_id']]['goods_id'][] = $v['goods_id'];
-            $datas[$v['supplier_id']]['price'][] += $v['total_price'];
+            if(isset($datas[$v['supplier_id']]['price'])&&is_array($datas[$v['supplier_id']]['price'])){
+                $datas[$v['supplier_id']]['price'][] += $v['total_price'];
+            }else{
+                $datas[$v['supplier_id']]['price'][] = $v['total_price'];
+            }
+            // $datas[$v['supplier_id']]['price'][]    += $v['total_price'];
+
         }
-        
+        // dd($datas);
         foreach ($datas as $k => $v) {
             //供应商活动列表
             $goods[$k][0]['activity'] = $this->get_activity($v['goods_id'],$v['price'],$k);
             //能使用的优惠券列表
             $goods[$k][0]['coupon'] = $this->get_coupon($v['goods_id'],$v['price'],$k);
         }
-        
-        $this->assign('title','诚车堂-订货管理小助手！');
-        $this->assign('address',$address);
+        // dd($goods);
+        // $this->assign('title','诚车堂-订货管理小助手！');
+        /*$this->assign('address',$address);
         $this->assign('province_list',$province_list);
         $this->assign('goods',$goods);
         $this->assign('total',$total);
-        $this->display();   
-
+        $this->display();  */ 
+        return view('purchase.check_order',compact('address','goods','total'));
         
     }
 
 
     //创建订单
-    public function create_order(){
+    public function create_order(Request $request){
 
-        $location_id=$this->get_location_ids();
-
-        $ids=substr(session('cart_ids'),0,-1);
-
-        $cart_info=M()->query("select pg.thumbnail,pg.price as goods_price,pg.promotion_price,pg.stock,pec.*,ps.name,pga.attr_name_val from fw_pms_erp_cart as pec left join fw_pms_goods as pg on pg.id=pec.goods_id left join fw_pms_supplier as ps on ps.id=pg.supplier_id left join fw_pms_goods_attr as pga on pga.goods_id=pg.id  where  pec.location_id=".intval($location_id)." and pec.id in(".$ids.")"); 
-        
+        $location_id = $this->get_location_ids();
+        // dd(session('cart_ids'));
+        // $ids = substr(session('cart_ids'),0,-1);
+        $ids = explode(',',session('cart_ids'));
+        $cart_info = DB::table('pms_erp_cart as pec')
+        ->where('pec.location_id',intval($location_id))
+        ->whereIn('pec.id',$ids)
+        ->leftJoin('pms_goods as pg','pg.id','=','pec.goods_id')
+        ->leftJoin('pms_supplier as ps','ps.id','=','pg.supplier_id')
+        ->leftJoin('pms_goods_attr as pga','pga.goods_id','=','pg.id')
+        ->select('pg.costs','pg.thumbnail','pg.price as goods_price','pg.promotion_price','pg.stock','pec.*','ps.name','pga.attr_name_val')
+        ->get(); 
+        $cart_info = objectToArray($cart_info);
+        // dd($cart_info);
         if(!$cart_info){
-            $result['status']=0;
-            $result['info']='购物车空空如也,先去采购吧';
-            $this->ajaxReturn($result); 
+            $result['status'] = 0;
+            $result['info']   = '购物车空空如也,先去采购吧';
+            return json_encode($result);
         }       
 
         $account_info = session('account_info');
-        //$location_info = $this->get_location_info();
 
-        $address_id = intval($_POST['address_id']);
-        $address = M('pms_address')->where('id='.$address_id.' and location_id='.$location_id)->find();
-
+        $address_id = $request->input('address_id');
+        $address = DB::table('pms_address')->where([['id',$address_id],['location_id',$location_id]])->first();
+        $create_order_price = 0;
         foreach ($cart_info as $k => $v) {
             
             //使用最新价格，如果有促销价则使用促销价
-            $v['price'] = $v['promotion_price']>0 ? $v['promotion_price'] : $v['goods_price'];
-            $v['total_price'] = $v['price']*$v['number'];//小计
-            $create_order_price +=$v['total_price'];
-            $order_info[$v['supplier_id']][] = $v;
+            $v['price']                             = $v['promotion_price']>0 ? $v['promotion_price'] : $v['goods_price'];
+            $v['total_price']                       = $v['price']*$v['number'];//小计
+            $create_order_price                     +=$v['total_price'];
+            $order_info[$v['supplier_id']][]        = $v;
             $datas[$v['supplier_id']]['goods_id'][] = $v['goods_id'];
-            $datas[$v['supplier_id']]['price'][] = $v['total_price'];
+            $datas[$v['supplier_id']]['price'][]    = $v['total_price'];
         }
 
         if($create_order_price<=0){
-            $result['status']=0;
-            $result['info']='订单总价不能为0';
-            $this->ajaxReturn($result); 
+            $result['status'] = 0;
+            $result['info']   = '订单总价不能为0';
+            return json_encode($result);
         }
 
         // 活动优惠或折扣id
@@ -723,30 +781,35 @@ class PurchaseController extends Controller
             $new_remark[$v] = $remark[$k];
         }
 
+        $order = [];
+        $all_order_id = [];
+        $all_total_price = 0;
+        $location_name = DB::table('supplier_location')->where('id',$location_id)->select('name')->first();
+        // dd($location_name);
         //生成订单 多个店铺生成多个订单
         foreach ($order_info as $k => $v) {
-            $order['order_sn'] = 'MD'.date('Ymdhis',time()).rand(10,99);
-            $order['purchase_user_id'] = $account_info['id'];
-            $order['location_id'] = $location_id;
-            $order['location_name'] = M('supplier_location')->where('id='.$location_id)->getField('name');
-            $order['receive_user'] = $address['name'];
-            $order['receive_tel'] = $address['tel'];
-            $order['create_time'] = time();
-            $order['supplier_id'] = $k;
-            $order['pay_status'] = 0;
-            $order['status'] = 1;
+            $order['order_sn']             = 'MD'.date('Ymdhis',time()).rand(10,99);
+            $order['purchase_user_id']     = $account_info['id'];
+            $order['location_id']          = $location_id;
+            $order['location_name']        = $location_name->name;
+            $order['receive_user']         = $address->name;
+            $order['receive_tel']          = $address->tel;
+            $order['create_time']          = time();
+            $order['supplier_id']          = $k;
+            $order['pay_status']           = 0;
+            $order['status']               = 1;
             $order['total_original_price'] = $act_data[$k]['total_original_price'];
-            $order['total_price'] = $act_data[$k]['total_price'];
-            $order['act_id'] = $act_data[$k]['act_id'];
-            $order['location_coupon_id'] = $act_data[$k]['location_coupon_id'];
-            $order['discount_price'] = $act_data[$k]['discount_price'];
-            $order['is_del'] = 0;
-            $order['address'] = $address['full_address'];
-            $order['remark'] = $new_remark[$k];
+            $order['total_price']          = $act_data[$k]['total_price'];
+            $order['act_id']               = $act_data[$k]['act_id'];
+            $order['location_coupon_id']   = $act_data[$k]['location_coupon_id'];
+            $order['discount_price']       = $act_data[$k]['discount_price'];
+            $order['is_del']               = 0;
+            $order['address']              = $address->full_address;
+            $order['remark']               = $new_remark[$k];
             
-            $order_id=M('pms_order')->add($order);
-            
-
+            // $order_id=M('pms_order')->add($order);
+            // $order_id = DB::table('pms_order')->insert($order);
+            $order_id = DB::table('pms_order')->insertGetId($order);
             if($order_id){
 
                 //将单个或多个order_id写入合并订单
@@ -758,95 +821,97 @@ class PurchaseController extends Controller
 
                 //写入订单详情            
                 foreach ($v as $i_k => $i_v) {
-                    $order_costs += $i_v['costs'] * $i_v['number'];
-                    $order_nums += $i_v['number'];
-                    $item_data['order_id']=$order_id;
-                    $item_data['goods_name']=$i_v['goods_name'];
-                    $item_data['goods_id']=$i_v['goods_id'];
-                    $item_data['sell_price']=$i_v['price'];
-                    $item_data['num']=$i_v['number'];
-                    $item_data['thumbnail']=$i_v['thumbnail'];
-                    $item_data['attr_val']=$i_v['attr_name_val'];                   
-                    $item_result = M('pms_order_item')->add($item_data);
+                    $order_costs             += $i_v['costs'] * $i_v['number'];
+                    $order_nums              += $i_v['number'];
+                    $item_data['order_id']   = $order_id;
+                    $item_data['goods_name'] = $i_v['goods_name'];
+                    $item_data['goods_id']   = $i_v['goods_id'];
+                    $item_data['sell_price'] = $i_v['price'];
+                    $item_data['num']        = $i_v['number'];
+                    $item_data['thumbnail']  = $i_v['thumbnail'];
+                    $item_data['attr_val']   = $i_v['attr_name_val'];                   
+                    $item_result             = DB::table('pms_order_item')->insertGetId($item_data);
                 }
                 
-                $update_sql="UPDATE fw_pms_order SET `costs`=".$order_costs.",total_num=".$order_nums." WHERE `id`=".$order_id;
-                M()->query($update_sql);                
-
+                DB::select("UPDATE fw_pms_order SET `costs`=?,total_num=? WHERE `id`=?",[$order_costs,$order_nums,$order_id]);                
                 if(!$item_result){
-
-                    $result['status']=0;
-                    $result['info']='订单详情创建失败';
-                    $this->ajaxReturn($result); 
+                    $result['status'] = 0;
+                    $result['info']   = '订单详情创建失败';
+                    return json_encode($result); 
                 }
 
             }else{
-                $result['status']=0;
-                $result['info']='订单详情创建失败';
-                $this->ajaxReturn($result); 
+                $result['status'] = 0;
+                $result['info']   = '订单详情创建失败';
+                return json_encode($result); 
             }
             
         }
         //创建合并订单
         if($all_order_id && $all_total_price){
             
-            $merge_order['order_sn'] = 'JY'.date('Ymdhis',time()).rand(10,99);
-            $merge_order['order_ids'] = implode(',', $all_order_id);
-            $merge_order['receive_user'] = $address['name'];
-            $merge_order['receive_tel'] = $address['tel'];
-            $merge_order['location_id'] = $location_id;
-            $merge_order['create_time'] = time();
-            $merge_order['total_price'] = $all_total_price;
-            $merge_order['pay_status'] = 0;
-            $merge_order['pay_time'] = 0;
+            $merge_order['order_sn']         = 'JY'.date('Ymdhis',time()).rand(10,99);
+            $merge_order['order_ids']        = implode(',', $all_order_id);
+            $merge_order['receive_user']     = $address->name;
+            $merge_order['receive_tel']      = $address->tel;
+            $merge_order['location_id']      = $location_id;
+            $merge_order['create_time']      = time();
+            $merge_order['total_price']      = $all_total_price;
+            $merge_order['pay_status']       = 0;
+            $merge_order['pay_time']         = 0;
             $merge_order['means_of_payment'] = 0;
-            $merge_order['is_del'] = 0;
+            $merge_order['is_del']           = 0;
 
-            $merge_order_id=M('pms_merge_order')->add($merge_order);
-            
+            // $merge_order_id=M('pms_merge_order')->add($merge_order);
+            $merge_order_id = DB::table('pms_merge_order')->insertGetId($merge_order);
 
             if($merge_order_id){
                 //订单创建成功后清空购物车
-                M('pms_erp_cart')->where('location_id='.$location_id)->delete();
-                $result['status']=1;
-                $result['info']='订单创建成功';
-                $result['order_id']=$merge_order_id;
-                $this->ajaxReturn($result); 
+                // M('pms_erp_cart')->where('location_id='.$location_id)->delete();
+                DB::table('pms_erp_cart')->where('location_id',$location_id)->delete();
+                $result['status']   = 1;
+                $result['info']     = '订单创建成功';
+                $result['order_id'] = $merge_order_id;
+                return json_encode($result); 
             }else{
-                $result['status']=0;
-                $result['info']='订单创建失败';
-                $this->ajaxReturn($result);
+                $result['status'] = 0;
+                $result['info']   = '订单创建失败';
+                return json_encode($result); 
             }
 
         }else{
-            $result['status']=0;
-            $result['info']='订单创建失败';
-            $this->ajaxReturn($result);
+            $result['status'] = 0;
+            $result['info']   = '订单创建失败';
+            return json_encode($result); 
         }
 
     }
 
     //订单信息
-    public function order(){
-        $id=intval($_REQUEST['id']);
-        $t=trim($_REQUEST['t']);
-        $location_id=$this->get_location_ids();
+    public function order(Request $request){
+        // $id=intval($_REQUEST['id']);
+        // $t=trim($_REQUEST['t']);
+        $id = $request->input('id');
+        $t  = $request->input('t');
+        $location_id = $this->get_location_ids();
 
-        if($t=='pms_merge_order'){
-            $order_info=M('pms_merge_order')->where('id='.$id.' and pay_status=0 and system=0 and location_id='.$location_id)->find();          
+        if($t == 'pms_merge_order'){
+            // $order_info=M('pms_merge_order')->where('id='.$id.' and pay_status=0 and system=0 and location_id='.$location_id)->find();          
+            $order_info = DB::table('pms_merge_order')->where([['id',$id],['pay_status',0],['system',0],['location_id',$location_id]])->first();          
         }else{
-            $order_info=M('pms_order')->where('id='.$id.' and purchase_user_id=0 and system=0 and location_id='.$location_id)->find();
+            // $order_info=M('pms_order')->where('id='.$id.' and purchase_user_id=0 and system=0 and location_id='.$location_id)->find();
+            $order_info = DB::table('pms_order')->where([['id',$id],['purchase_user_id',0],['system',0],['location_id',$location_id]])->first();          
 
-            $order_info['pay_type']=$this->get_pay_type($order_info['means_of_payment'],$order_info['pay_type']);       
+
+            $order_info['pay_type'] = $this->get_pay_type($order_info->means_of_payment,$order_info->pay_type);       
         }
 
         if(!$order_info){
-            $this->error('无此订单信息',U('Purchase/index'),3);
+            // $this->error('无此订单信息',U('purchase/index'),3);
+            redirect(url('purchase/index'));
         }
-        
-        $this->assign('oi',$order_info);
-        $this->assign('title','诚车堂-订货管理小助手！');
-        $this->display();
+        dd($order_info);
+        return view('purchase.order',['oi'=>$order_info]);
     }
 
     //确认订单
@@ -879,7 +944,7 @@ class PurchaseController extends Controller
         $order_info['pay_type']=$this->get_pay_type($order_info['means_of_payment'],$order_info['pay_type']);               
         $order_info['order_status']=$this->get_order_status($order_info['status']);
         if(!$order_info){
-            $this->error('无此订单信息',U('Purchase/index'),3);
+            $this->error('无此订单信息',U('purchase/index'),3);
         }
         
         $this->assign('oi',$order_info);
@@ -1160,7 +1225,7 @@ class PurchaseController extends Controller
         }
 
         if (!$order) {
-            $this->error('无此订单信息',U('Purchase/home'),3);
+            $this->error('无此订单信息',U('purchase/home'),3);
         }
 
         $order['pay_type']=$this->get_pay_type($order['means_of_payment'],$order['pay_type']);
@@ -1290,7 +1355,7 @@ class PurchaseController extends Controller
         
 
         if(!$address_info){
-            $this->error('无此地址',U('Purchase/address_list'),3);
+            $this->error('无此地址',U('purchase/address_list'),3);
         }
 
         //省份列表
@@ -1451,34 +1516,51 @@ class PurchaseController extends Controller
     private function get_coupon($goods_id,$price,$supplier_id){
 
         //查找本门店在该供应商的优惠券列表
-        $location_coupon =M()->query("select id,goods_ids,full_money,discount_money from fw_pms_location_coupon where location_id=".intval($this->get_location_ids())." and supplier_id=".$supplier_id." and num>0 and (unix_timestamp() between start_time and end_time)"); 
-
+        // $location_coupon =M()->query("select id,goods_ids,full_money,discount_money from fw_pms_location_coupon where location_id=".intval($this->get_location_ids())." and supplier_id=".$supplier_id." and num>0 and (unix_timestamp() between start_time and end_time)"); 
+        $location_coupon = DB::select("select id,goods_ids,full_money,discount_money from fw_pms_location_coupon where location_id=? and supplier_id=? and num>0 and (unix_timestamp() between start_time and end_time)",[intval($this->get_location_ids()),$supplier_id]); 
+        $location_coupon = objectToArray($location_coupon);
+        // dd($location_coupon);
         if($location_coupon){
+            $coupon = [];
             foreach ($location_coupon as $k => $v) {
 
                 foreach ($goods_id as $g_k => $g_v) {
                     if($v['goods_ids'] == 0){//所有商品
-                        $coupon[$v['id']]['price'] += $price[$g_k];
+                        if(isset($coupon[$v['id']]['price'])){
+                            $coupon[$v['id']]['price'] += $price[$g_k];
+                        }else{
+                            $coupon[$v['id']]['price']= $price[$g_k];
+                        }
                     }else{//部分商品
                         $had_goods_id = explode(',', $v['goods_ids']);
                         if(in_array($g_v, $had_goods_id)){
-                            $coupon[$v['id']]['price'] += $price[$g_k];
+                            if(isset($coupon[$v['id']]['price'])){
+                                $coupon[$v['id']]['price'] += $price[$g_k];
+                            }else{
+                                $coupon[$v['id']]['price']= $price[$g_k];
+                            }
                         }
                     }
                 }
 
             }
 
+            // dd($coupon);
+
             foreach ($location_coupon as $k => $v) {
 
-                if($coupon[$v['id']]['price'] >= $v['full_money']){//金额满足
+                if(is_array($coupon)&&!empty($coupon)){
 
-                    $is_all = $v['goods_ids'] == 0 ? '全部商品':'部分商品';
-                    $location_coupon[$k]['coupon_name'] = round($v['discount_money'],2)."元优惠券（".$is_all."满".round($v['full_money'],2)."元使用）";
-                    
-                }else{
-                    unset($location_coupon[$k]);
+                    if($coupon[$v['id']]['price'] >= $v['full_money']){//金额满足
+
+                        $is_all = $v['goods_ids'] == 0 ? '全部商品':'部分商品';
+                        $location_coupon[$k]['coupon_name'] = round($v['discount_money'],2)."元优惠券（".$is_all."满".round($v['full_money'],2)."元使用）";
+                        
+                    }else{
+                        unset($location_coupon[$k]);
+                    }
                 }
+
 
             }
 
@@ -1497,21 +1579,30 @@ class PurchaseController extends Controller
     private function get_activity($goods_id,$price,$supplier_id){
         
         //查找符合的有效期内的供应商活动
-        $act_list =M()->query("select id,act_name,goods_ids,act_type from fw_pms_activity where supplier_id=".$supplier_id." and is_del=0 and (unix_timestamp() between start_time and end_time)");
-        
-
+        // $act_list =M()->query("select id,act_name,goods_ids,act_type from fw_pms_activity where supplier_id=".$supplier_id." and is_del=0 and (unix_timestamp() between start_time and end_time)");
+        $act_list =DB::select("select id,act_name,goods_ids,act_type from fw_pms_activity where supplier_id=? and is_del=? and (unix_timestamp() between start_time and end_time)",[$supplier_id,0]);
+        $act_list = objectToArray($act_list);
+        $act_rule_list = [];
+        // dd($act_list);
         if($act_list){
             foreach ($act_list as $k => $v) {
-
                 foreach ($goods_id as $g_k => $g_v) {
                     if($v['goods_ids'] == 0){//所有商品
-                        $act[$v['id']]['price'] += $price[$g_k];
+                        if(isset($act[$v['id']]['price'])){
+                            $act[$v['id']]['price'] += $price[$g_k];
+                        }else{
+                            $act[$v['id']]['price']= $price[$g_k];
+                        }
                         $act[$v['id']]['act_type'] = $v['act_type'];
                         $act[$v['id']]['is_all_val'] = '全部商品';
                     }else{//部分商品
                         $had_goods_id = explode(',', $v['goods_ids']);
                         if(in_array($g_v, $had_goods_id)){
-                            $act[$v['id']]['price'] += $price[$g_k];
+                            if(isset($act[$v['id']]['price'])){
+                                $act[$v['id']]['price'] += $price[$g_k];
+                            }else{
+                                $act[$v['id']]['price']= $price[$g_k];
+                            }
                             $act[$v['id']]['act_type'] = $v['act_type'];
                             $act[$v['id']]['is_all_val'] = '部分商品';
                         }
@@ -1519,7 +1610,7 @@ class PurchaseController extends Controller
                 }
 
             }
-
+        // dd($act);
             if($act){
                 foreach ($act as $k => $v) {
                     $act_rule = $this->get_act_rule($k,$v['price'],$v['act_type'],$v['is_all_val']);
@@ -1532,7 +1623,7 @@ class PurchaseController extends Controller
             }
             
         }
-
+        // dd($act_rule_list);
         return $act_rule_list;
             
     }
@@ -1549,19 +1640,25 @@ class PurchaseController extends Controller
 
         //金额满足能使用的规则
         if($act_type == 1 || $act_type == 2){//满减、满折
-            $act_rule_list = M('pms_activity_rule')->where('act_id='.$act_id.' and '.$act_store_price.'>=full_money');
-            //$GLOBALS['db']->getAll("select * from ".DB_PREFIX."pms_activity_rule where act_id=".$act_id." and ".$act_store_price.">=full_money");
+            // $act_rule_list = M('pms_activity_rule')->where('act_id='.$act_id.' and '.$act_store_price.'>=full_money');
+            DB::enableQueryLog();
+            $act_rule_list = DB::table('pms_activity_rule')->where([['act_id',$act_id],['full_money','<=',$act_store_price]])->get();
+            // dd(getLastSql());
+            $act_rule_list = objectToArray($act_rule_list);
+            // dd($act_rule_list);
         }
         if($act_type == 3){//购物赠券,一个活动对应一个规则
 
             //规则：达到满足金额。优惠券：1.有效 2.有效期内 3.本门店领取张数合计未超过限制次数 4.赠送张数小于发行总张数
-            $act_rule_list =M()->query("select par.*,pc.discount_money as coupon_price,pc.id as coupon_id,pc.limit_num from fw_pms_activity_rule as par left join fw_pms_coupon as pc on par.discount_money=pc.id where par.act_id=".$act_id." and ".$act_store_price.">=par.full_money and pc.is_del=0 and (unix_timestamp() between pc.start_time and pc.end_time) and pc.give_num<pc.total_num"); 
-            
+            // $act_rule_list =M()->query("select par.*,pc.discount_money as coupon_price,pc.id as coupon_id,pc.limit_num from fw_pms_activity_rule as par left join fw_pms_coupon as pc on par.discount_money=pc.id where par.act_id=".$act_id." and ".$act_store_price.">=par.full_money and pc.is_del=0 and (unix_timestamp() between pc.start_time and pc.end_time) and pc.give_num<pc.total_num"); 
+            $act_rule_list = DB::select("select par.*,pc.discount_money as coupon_price,pc.id as coupon_id,pc.limit_num from fw_pms_activity_rule as par left join fw_pms_coupon as pc on par.discount_money=pc.id where par.act_id=? and ?>=par.full_money and pc.is_del=0 and (unix_timestamp() between pc.start_time and pc.end_time) and pc.give_num<pc.total_num",[$act_id,$act_store_price]); 
+            $act_rule_list = objectToArray($act_rule_list);
 
             if($act_rule_list[0]['coupon_id']){
                 //判断门店之前购物赠券(type=1)次数是否已超
-                $coupon_list =M('pms_location_coupon')->where('coupon_id='.$act_rule_list[0]['coupon_id'].' and location_id='.$this->get_location_ids().' and type=1');
-            
+                // $coupon_list =M('pms_location_coupon')->where('coupon_id='.$act_rule_list[0]['coupon_id'].' and location_id='.$this->get_location_ids().' and type=1');
+                $coupon_list = DB::table('pms_location_coupon')->where([['coupon_id',$act_rule_list[0]['coupon_id']],['location_id',$this->get_location_ids()],['type',1]])->get();
+                $coupon_list = objectToArray($coupon_list);
                 if($coupon_list){
                     $location_coupon_num = 0;
                     foreach ($coupon_list as $k => $v) {
@@ -1577,11 +1674,9 @@ class PurchaseController extends Controller
             }
 
         }
-        
 
-        if($act_rule_list){
+        if(is_array($act_rule_list)&&$act_rule_list!=null){
             foreach ($act_rule_list as $k => $v) {
-
                 $act_rule_list[$k]['act_type'] = $act_type;
                 $act_rule_list[$k]['act_store_price'] = $act_store_price;
                 if($act_type == 1)
@@ -1605,12 +1700,20 @@ class PurchaseController extends Controller
     * @return   $new_datas   返回二维数组，键值是供应商id。包含原始总金额、总金额、优惠总金额、参与活动金额、活动id、门店优惠券id
     */
     private function use_act_coupon($act_rule_id,$coupon_ids,$datas){
-
+        $act_list = [];
+        $act = [];
         // 1.参与活动
         if($act_rule_id){
             //有效期内、有效的活动规则
-            $act_list =M()->query("select par.act_id,par.full_money,par.discount_money,pa.start_time,pa.end_time,pa.supplier_id,pa.goods_ids,pa.act_type from fw_pms_activity_rule as par left join fw_pms_activity as pa on pa.id=par.act_id where pa.is_del=0 and par.id in (".$act_rule_id.") and (unix_timestamp() between pa.start_time and pa.end_time)");
-
+            // $act_list =M()->query("select par.act_id,par.full_money,par.discount_money,pa.start_time,pa.end_time,pa.supplier_id,pa.goods_ids,pa.act_type from fw_pms_activity_rule as par left join fw_pms_activity as pa on pa.id=par.act_id where pa.is_del=0 and par.id in (".$act_rule_id.") and (unix_timestamp() between pa.start_time and pa.end_time)");
+            // $act_list = DB::select("select par.act_id,par.full_money,par.discount_money,pa.start_time,pa.end_time,pa.supplier_id,pa.goods_ids,pa.act_type from fw_pms_activity_rule as par left join fw_pms_activity as pa on pa.id=par.act_id where pa.is_del=0 and par.id in (".$act_rule_id.") and (unix_timestamp() between pa.start_time and pa.end_time)");
+            $act_list = DB::table('pms_activity_rule as par')
+            ->whereIn('par.id',explode(',',$act_rule_id))
+            ->where('pa.is_del',0)
+            ->whereBetween('unix_timestamp()',array('pa.start_time','pa.end_time'))
+            ->leftJoin('pms_activity as pa','pa.id','=','par.act_id')
+            ->get();
+            $act_list = objectToArray($act_list);
         }
 
         if($act_list){
@@ -1618,7 +1721,7 @@ class PurchaseController extends Controller
                 $act[$v['supplier_id']] = $v;
             }
         }
-
+        // dd($act_list);
         foreach ($datas as $k => $v) {
 
             //初始化 活动金额、活动id、门店优惠券id、优惠金额 
@@ -1626,6 +1729,8 @@ class PurchaseController extends Controller
             $new_datas[$k]['act_id'] = 0;
             $new_datas[$k]['location_coupon_id'] = 0;
             $new_datas[$k]['discount_price'] = 0;
+            $new_datas[$k]['total_original_price'] = 0;
+            $new_datas[$k]['total_price'] = 0;
 
             foreach ($v['goods_id'] as $d_k => $d_v) {
 
@@ -1634,7 +1739,7 @@ class PurchaseController extends Controller
                 //总金额(未扣除优惠)
                 $new_datas[$k]['total_price'] += $v['price'][$d_k];
 
-                if($act[$k]){//如果存在该供应商活动
+                if(!empty($act[$k])){//如果存在该供应商活动
 
                     if($act[$k]['goods_ids'] == 0){//全部商品
                         $new_datas[$k]['act_price'] += $v['price'][$d_k];
@@ -1650,30 +1755,41 @@ class PurchaseController extends Controller
             }
 
         }
-
+        // dd($new_datas);
         foreach ($datas as $k => $v) {
-            //判断是否能参与活动，获得优惠或折扣
-            if($new_datas[$k]['act_price'] >= $act[$k]['full_money'] && $new_datas[$k]['act_price']>0 && $act[$k]['full_money']>0){
+            if(!empty($act)){
+                //判断是否能参与活动，获得优惠或折扣
+                if($new_datas[$k]['act_price'] >= $act[$k]['full_money'] && $new_datas[$k]['act_price']>0 && $act[$k]['full_money']>0){
 
-                $new_datas[$k]['act_id'] = $act[$k]['act_id'];
+                    $new_datas[$k]['act_id'] = $act[$k]['act_id'];
 
-                if($act[$k]['act_type'] == 1 && $act[$k]['discount_money']>0 && $act[$k]['discount_money']<$act[$k]['full_money']){//1为满就减
-                    $new_datas[$k]['discount_price'] = $act[$k]['discount_money'];//优惠金额
-                    $new_datas[$k]['total_price'] -= $act[$k]['discount_money'];//总金额减去优惠金额
+                    if($act[$k]['act_type'] == 1 && $act[$k]['discount_money']>0 && $act[$k]['discount_money']<$act[$k]['full_money']){//1为满就减
+                        $new_datas[$k]['discount_price'] = $act[$k]['discount_money'];//优惠金额
+                        $new_datas[$k]['total_price'] -= $act[$k]['discount_money'];//总金额减去优惠金额
+                    }
+                    if($act[$k]['act_type'] == 2 && $act[$k]['discount_money']>0 && $act[$k]['discount_money']<10){//2为满就折
+                        $new_datas[$k]['discount_price'] = $new_datas[$k]['act_price']*((10-$act[$k]['discount_money'])/10);//折扣金额
+                        $new_datas[$k]['total_price'] -= $new_datas[$k]['act_price']*((10-$act[$k]['discount_money'])/10);//总金额减去折扣金额
+                    }
+
                 }
-                if($act[$k]['act_type'] == 2 && $act[$k]['discount_money']>0 && $act[$k]['discount_money']<10){//2为满就折
-                    $new_datas[$k]['discount_price'] = $new_datas[$k]['act_price']*((10-$act[$k]['discount_money'])/10);//折扣金额
-                    $new_datas[$k]['total_price'] -= $new_datas[$k]['act_price']*((10-$act[$k]['discount_money'])/10);//总金额减去折扣金额
-                }
-
             }
         }
 
         //2.使用优惠券
+        $coupon_list = [];
         if($coupon_ids){
-            $coupon_list = M('pms_location_coupon')->where("location_id=".intval($this->get_location_ids())." and num>0 and (unix_timestamp() between start_time and end_time) and id in (".$coupon_ids.")")->select();
-            
+            // $coupon_list = M('pms_location_coupon')->where("location_id=".intval($this->get_location_ids())." and num>0 and (unix_timestamp() between start_time and end_time) and id in (".$coupon_ids.")")->select();
+            $coupon_list = DB::table('pms_location_coupon')
+            ->where([["location_id",intval($this->get_location_ids())],["num",'>',0]])
+            ->whereIn('id',explode(',',$coupon_ids))
+            ->whereBetween('unix_timestamp()',['start_time','end_time'])
+            ->get();
+
+            $coupon_list = objectToArray($coupon_list);
         }
+
+        $coupon = [];
 
         if($coupon_list){
             foreach ($coupon_list as $k => $v) {
@@ -1682,10 +1798,10 @@ class PurchaseController extends Controller
         }
 
         foreach ($datas as $k => $v) {
-
+            $new_datas[$k]['coupon_act_price'] = 0;
             foreach ($v['goods_id'] as $d_k => $d_v) {
 
-                if($coupon[$k]){//如果存在优惠券
+                if(!empty($coupon[$k])){//如果存在优惠券
 
                     if($coupon[$k]['goods_ids'] == 0){//全部商品
                         $new_datas[$k]['coupon_act_price'] += $v['price'][$d_k];
@@ -1702,26 +1818,31 @@ class PurchaseController extends Controller
 
         }
 
+        $new_location_coupon_id= [];
+
         foreach ($datas as $k => $v) {
-            // 判断是否能使用优惠券
-            if($new_datas[$k]['coupon_act_price'] >= $coupon[$k]['full_money'] && $new_datas[$k]['coupon_act_price']>0 && $coupon[$k]['full_money']>0){
+            if(!empty($coupon)){
+                // 判断是否能使用优惠券
+                if($new_datas[$k]['coupon_act_price'] >= $coupon[$k]['full_money'] && $new_datas[$k]['coupon_act_price']>0 && $coupon[$k]['full_money']>0){
 
-                $new_datas[$k]['location_coupon_id'] = $coupon[$k]['id'];
+                    $new_datas[$k]['location_coupon_id'] = $coupon[$k]['id'];
 
-                if($coupon[$k]['discount_money']>0 && $coupon[$k]['discount_money']<$coupon[$k]['full_money']){
-                    $new_datas[$k]['discount_price'] += $coupon[$k]['discount_money']; //(活动优惠、折扣金额)+优惠券金额
-                    $new_datas[$k]['total_price'] -= $coupon[$k]['discount_money'];//总金额减去优惠券金额(已减活动金额) 
+                    if($coupon[$k]['discount_money']>0 && $coupon[$k]['discount_money']<$coupon[$k]['full_money']){
+                        $new_datas[$k]['discount_price'] += $coupon[$k]['discount_money']; //(活动优惠、折扣金额)+优惠券金额
+                        $new_datas[$k]['total_price'] -= $coupon[$k]['discount_money'];//总金额减去优惠券金额(已减活动金额) 
+                    }
+                    if($coupon[$k]['id']){
+                        $new_location_coupon_id[] = $coupon[$k]['id'];//用于减优惠券数量
+                    }
+
                 }
-                if($coupon[$k]['id']){
-                    $new_location_coupon_id[] = $coupon[$k]['id'];//用于减优惠券数量
-                }
-
             }
         }
 
         //减优惠券数量
         if($new_location_coupon_id){
-            M('pms_location_coupon')->where("id in(".implode(',', $new_location_coupon_id).")")->setDec('num');         
+            // M('pms_location_coupon')->where("id in(".implode(',', $new_location_coupon_id).")")->setDec('num');         
+            DB::table('pms_location_coupon')->whereIn("id",implode(',', $new_location_coupon_id))->decrement('num');         
         }
         
         return $new_datas;
@@ -1731,16 +1852,19 @@ class PurchaseController extends Controller
     //判断商品库存
     public function goods_stock_info($goods_id,$goods_num){
 
-        $location_id=$this->get_location_ids();
+        $location_id = $this->get_location_ids();
 
         //商品库存
-        $goods_stock=intval(M('pms_goods')->where('id='.$goods_id)->getField('stock'));     
+        $goods_stock = DB::table('pms_goods')->where('id',$goods_id)->select('stock')->first();     
+        $goods_stock = $goods_stock->stock;     
+        // $goods_stock = intval(M('pms_goods')->where('id='.$goods_id)->getField('stock'));     
         
         //购物车已添加商品库存
-        $cart_stock=intval(M('pms_erp_cart')->where('goods_id='.$goods_id.' and location_id='.intval($location_id))->sum('number'));
+        // $cart_stock = intval(M('pms_erp_cart')->where('goods_id='.$goods_id.' and location_id='.intval($location_id))->sum('number'));
+        $cart_stock = DB::table('pms_erp_cart')->where([['goods_id',$goods_id],['location_id',intval($location_id)]])->sum('number');
     
         //库存不足返回负数
-        $stock=$goods_stock-$goods_num-$cart_stock;
+        $stock = $goods_stock-$goods_num-$cart_stock;
 
         return $stock;      
     }

@@ -19,6 +19,12 @@ Route::get('/biz/login', 'BizController@login');
 Route::get('/purchase/home', 'PurchaseController@home');
 // Route::get('/purchase/detail/', 'PurchaseController@detail');
 Route::get('/purchase/detail/{id}','PurchaseController@detail');
+Route::get('/purchase/search','PurchaseController@search');
+Route::post('/purchase/add_card','PurchaseController@add_card');
+Route::get('/purchase/cart','PurchaseController@cart');
+Route::get('/purchase/check_order','PurchaseController@check_order');
+Route::get('/purchase/order','PurchaseController@order');
+Route::post('/purchase/create_order','PurchaseController@create_order');
 Route::get('/purchase/ajax_get_qualitygoods', 'PurchaseController@ajax_get_qualitygoods');
 Route::get('/purchase/index', 'PurchaseController@index');
 /*Route::get('/biz/ajax_login', function() {

@@ -58,6 +58,20 @@ class AppServiceProvider extends ServiceProvider
             fclose($logFile);
           }
         );*/
+
+        //视图间共享数据
+        // view()->share('no_include','0');
+
+        //视图Composer
+        view()->composer('layouts.header',function($view){
+            // $view->with('user',array('name'=>'test','avatar'=>'/path/to/test.jpg'));
+            $view->with('no_include',0);
+            $view->with('title','诚车堂-订货管理小助手！');
+        });
+
+       /* view()->composer(['hello','home'],function($view){
+            $view->with('user',array('name'=>'test','avatar'=>'/path/to/test.jpg'));
+        });*/
     }
 
     /**

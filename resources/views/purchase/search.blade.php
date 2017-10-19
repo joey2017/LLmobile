@@ -1,8 +1,8 @@
-<include file="Inc:header"/>
+@include('layouts.header')
 
 </head>
 <body class="drawer drawer-right">
-<link rel="stylesheet" href="__PUBLIC__/css/drawer.min.css">
+<link rel="stylesheet" href="{{asset('css/drawer.min.css')}}">
 <style type="text/css">
 /*布局样式重置*/
 .tab_parent{padding-left: 15px;}
@@ -17,7 +17,7 @@ a:focus,a:active, a:hover{color: #333; text-decoration: none;}
 
 /*搜索条*/
 .searchtab{position: relative; width: 100%; height: 36px; border-radius: 5px; margin-right:10px; }
-.searchtab span{position: absolute; width: 30px; height: 30px; display: block; top: 2px; left: 2px; background:url(__PUBLIC__/images/searchico.svg) no-repeat; background-size: 30px;}
+.searchtab span{position: absolute; width: 30px; height: 30px; display: block; top: 2px; left: 2px; background:url({{asset('images/searchico.svg')}} no-repeat; background-size: 30px;}
 .searchtab input{border:0; background:#efefef; text-indent: 2em;}
 .searchbtn{width: 80px; height: 36px;}
 .searchbtn button{width: 80px; height: 33px; border:0; background: #f6a915; color: #fff; border-radius: 5px;}
@@ -26,11 +26,11 @@ a:focus,a:active, a:hover{color: #333; text-decoration: none;}
 .screen{height: 42px; clear: both; text-align: center; border-top:1px solid #e2e2e2; border-bottom:1px solid #e2e2e2; padding: 10px 0; position: relative;}
 .screen .col-xs-4 {padding-left: 0; padding-right: 0;}
 .sepline{border-left:1px solid #e2e2e2; border-right:1px solid #e2e2e2;}
-.arrowico{width: 7px; height: 7px; display:inline-block;background:url(__PUBLIC__/images/down-icon.svg) no-repeat;background-size: 7px;}
-.screenico{width: 7px; height: 7px;display:inline-block; background:url(__PUBLIC__/images/screen.svg) no-repeat; background-size: 7px;}
+.arrowico{width: 7px; height: 7px; display:inline-block;background:url({{asset('images/down-icon.svg')}} no-repeat;background-size: 7px;}
+.screenico{width: 7px; height: 7px;display:inline-block; background:url({{asset('images/screen.svg')}} no-repeat; background-size: 7px;}
 .sort_sele,.sort_sele2{display: none; width: 100%; position: absolute; top: 42px; left: 0; background: #fff; padding:0 15px 10px 15px; z-index: 1; text-align: left;-webkit-box-shadow: 0 1px 3px #afafaf;  -moz-box-shadow: 0 1px 3px #afafaf; box-shadow: 0 1px 3px #afafaf;}
 .ptick{border-bottom: 1px solid #eee; margin: 0; line-height: 42px;}
-.ptick span{display: none; width: 16px;margin-top: 14px;background:url(__PUBLIC__/images/tickspan.png) no-repeat; height: 16px;  float: right;}
+.ptick span{display: none; width: 16px;margin-top: 14px;background:url({{asset('images/tickspan.png')}} no-repeat; height: 16px;  float: right;}
 .tick span{display: inline-block; } 
 
 /*产品列表*/
@@ -54,7 +54,7 @@ a:focus,a:active, a:hover{color: #333; text-decoration: none;}
     display: -webkit-box;  -webkit-line-clamp: 1;  -webkit-box-orient: vertical;  height: 28px; line-height: 19px;}
 .tc_choose{background: #e60012; border:1px #e60012 solid; color: #fff !important;}
 
-.switch_btn{width: 7px; height: 7px; display: inline-block; background: url(__PUBLIC__/images/down-icon.svg) no-repeat; background-size: 7px; margin-top: 6px;}
+.switch_btn{width: 7px; height: 7px; display: inline-block; background: url({{asset('images/down-icon.svg')}} no-repeat; background-size: 7px; margin-top: 6px;}
 
 .spanrotate{-webkit-transform: rotateZ(180deg);
             -moz-transform: rotateZ(180deg);
@@ -84,7 +84,7 @@ a:focus,a:active, a:hover{color: #333; text-decoration: none;}
     <div class="topsearch col-xs-12 box_flex">
    		<div class="flex1 searchtab">
    			<span></span>
-   			<input type="text" class="form-control" id="keyword" value="<{$keyword}>" placeholder="请输入商品名称">
+   			<input type="text" class="form-control" id="keyword" value="{{$keyword}}" placeholder="请输入商品名称">
    		</div>
    		<div class="searchbtn">
    			<button onclick="search_goods()">搜索</button>
@@ -171,7 +171,7 @@ a:focus,a:active, a:hover{color: #333; text-decoration: none;}
     		var keyword=$('#keyword').val(),index_search=$('#index_search').val(),sort=$('#sort').val();
             $("#load").show();
             stop=false;
-            $.get("<{:U('Purchase/ajax_get_goods')}>",{"p":currentpage,"keyword":keyword,"index_search":index_search,"sort":sort}
+            $.get("{{url('purchase/ajax_get_goods')}}",{"p":currentpage,"keyword":keyword,"index_search":index_search,"sort":sort}
           	,function(html){
                   if(html!=""){ 
                     if(currentpage==0) {

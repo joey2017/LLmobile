@@ -1,5 +1,5 @@
-<include file="Inc:header"/>
-<script type="text/javascript" src="__PUBLIC__/js/fastclick.js"></script>
+@include('layouts.header')
+<script type="text/javascript" src="{{asset('js/fastclick.js')}}"></script>
 
 </head>
 
@@ -22,10 +22,10 @@ body{position: relative; background: #eee;}
 .bundlev{height:40px; line-height: 40px; }
 .tickbtn{width: 40px; height: 40px;display: inline-block;}
 .tickico,.storeico,.tickNull{display: inline-block; width: 20px; height: 20px;    vertical-align: middle;}
-.tickico{ background: url(__PUBLIC__/images/tick.svg) no-repeat; background-size: 40px;}
-.tickNull{background: url(__PUBLIC__/images/tick.svg) no-repeat -20px 0; background-size: 40px;}
+.tickico{ background: url({{asset('images/tick.svg')}}) no-repeat; background-size: 40px;}
+.tickNull{background: url({{asset('images/tick.svg')}}) no-repeat -20px 0; background-size: 40px;}
 
-.storeico{ background: url(__PUBLIC__/images/store.svg) no-repeat; background-size: 20px;}
+.storeico{ background: url({{asset('images/store.svg')}}) no-repeat; background-size: 20px;}
 .editbtn{width: 48px; height: 40px;}
 
 /*商品信息*/
@@ -59,7 +59,7 @@ body{position: relative; background: #eee;}
 .sift_btn{ width:120px; height: 48px;color: #fff;  line-height: 48px; float: left; text-align: center;}
 .sift_btn_ok button{background: #ea413e;color: #fff;border:0;}
 
-.no_record{ height: 160px; width: 160px; background: url(__PUBLIC__/images/purchase.svg) no-repeat 21px 28px; background-size: 120px; background-color: #ef4a4a;  border-radius: 100px;  margin: 42px auto 23px auto;}
+.no_record{ height: 160px; width: 160px; background: url({{asset('images/purchase.svg')}}) no-repeat 21px 28px; background-size: 120px; background-color: #ef4a4a;  border-radius: 100px;  margin: 42px auto 23px auto;}
 
 .sift_bottom2{position:fixed; bottom: 0; right: 0; width: 100%;}
 .sift_bottom2 a{background: #ea413e;color: #fff;border:0;width:100%; height: 48px;line-height: 48px;text-align: center;}
@@ -75,78 +75,77 @@ body{position: relative; background: #eee;}
         FastClick.attach(document.body);
     });
 </script>
-<if condition="$cart_info neq ''">
-<volist name="cart_info" id="ci">
-	<div class="goodsbox" id="supplier_<{$ci.supplier_id}>">
+@if ($cart_info != '')
+@foreach($cart_info as $key => $ci)
+	<div class="goodsbox" id="supplier_{{$ci['supplier_id']}}">
 		<div class="box_flex bundlev">
 			<div class="flex1">
-				<a class="tickbtn text-center"><span class="tickico supplier" data-val="<{$ci.supplier_id}>" id="supplier_<{$ci.supplier_id}>"></span></a>
+				<a class="tickbtn text-center"><span class="tickico supplier" data-val="{{$ci['supplier_id']}}" id="supplier_{{$ci['supplier_id']}}"></span></a>
 				<i class="storeico"></i>
-				<{$key}>
+				{{$key}}
 			</div>
 			<div class="editbtn text-center">
 				<a href="javascript:;" class="btn-block">编辑</a>
 			</div>
 		</div>
 		<div class="goods_list">
-			<volist name="ci['item']" id="item">
-				<div class="goodsinfo" id="cart_item_<{$item.id}>">
+			@foreach($ci['item'] as $item)
+				<div class="goodsinfo" id="cart_item_{{$item['id']}}">
 					<div class="productlist box_flex">
-						<a class="tickbtn2 text-center"><span class="tickico goods_item" data-val="<{$item.id}>" name="supplier_goods_<{$ci.supplier_id}>"></span></a>
+						<a class="tickbtn2 text-center"><span class="tickico goods_item" data-val="{{$item['id']}}" name="supplier_goods_{{$ci['supplier_id']}}"></span></a>
 				    	<div class="leftimg">
-				    		<a href="<{:U('Purchase/detail',array('id'=>$item['goods_id']))}>"><img src="<{$item.thumbnail}>"></a>
+				    		<a href="{{url('purchase/detail',array('id'=>$item['goods_id']))}}"><img src="{{$item['thumbnail']}}"></a>
 				    	</div>
 				    	<div class="rightinfo flex1">
-				    		<h3><a href="<{:U('Purchase/detail',array('id'=>$item['goods_id']))}>"><{$item.goods_name}></a></h3>
+				    		<h3><a href="{{url('purchase/detail',array('id'=>$item['goods_id']))}}">{{$item['goods_name']}}</a></h3>
 				    		<div class="d-main">
-				    			<span class="price">￥:<{$item.price|price}></span> 
-				    			<span class="pull-right" id="item_num_<{$item.id}>">×<{$item.number}></span>
+				    			<span class="price">￥:{{price($item['price'])}}</span> 
+				    			<span class="pull-right" id="item_num_{{$item['id']}}">×{{$item['number']}}</span>
 				    		</div>
 
 				    		<!-- 编辑内容 -->
 				    		<div class="editinfo">
 				    			<div class="setbox pull-left">
 									<input class="min" name="" type="button" value="-" onclick="modify_cart('m',this)"/>
-									<input class="text_box" name="goodnum" type="text" id="goods_num_<{$item.id}>" data-price="<{$item.price}>" data="<{$item.id}>" data-val="<{$item.number}>" value="<{$item.number}>" onblur="update_number(<{$item.change_stock}>,this)"/>
+									<input class="text_box" name="goodnum" type="text" id="goods_num_{{$item['id']}}" data-price="{{$item['price']}}" data="{{$item['id']}}" data-val="{{$item['number']}}" value="{{$item['number']}}" onblur="update_number({{$item['change_stock']}},this)"/>
 									<input class="add" name="" type="button" value="+" onclick="modify_cart('a',this)"/>
 								</div>
-								<button class="pull-right delbtn" onclick="del_cart(<{$item.id}>)">删除</button>
+								<button class="pull-right delbtn" onclick="del_cart({{$item['id']}})">删除</button>
 				    		</div>
 				    	</div>
 			    	</div>
 				</div>
-			</volist>
+			@endforeach
 		</div>
 	</div>
-</volist>
-</if>
-<div id="no_cart_goods" <if condition="$cart_info neq '' "> style="display:none" </if> >
+@endforeach
+@endif
+<div id="no_cart_goods" @if($cart_info != '') style="display:none" @endif >
 	<div class="no_record"></div>
 	<p class="col-sm-12 text-center" style="font-size:16px;">您的购物车还是空的，赶紧去采购吧！</p>
 	<div class="sift_bottom2">
-		<a href="<{:U('Purchase/index')}>" class="btn-block">去采购</a>
+		<a href="{{url('purchase/index')}}" class="btn-block">去采购</a>
 	</div>
 </div>
 <div style="height:48px;"></div>
 
 <div class="sift_bottom box_flex" id="sift_bottom" style="bottom: 50px;">
 	<div class="flex1">
-	<if condition="$cart_info neq ''">
+	@if($cart_info != '')
 		<a class="wholebtn text-center" id="do_select_all"><span id="select_all" class="tickico"></span></a>
 		全选
-		<span class="pull-right">合计: <span class="price" >￥<span id="total_price"><{$total.price}></span></span></span>
+		<span class="pull-right">合计: <span class="price" >￥<span id="total_price">{{$total['price']}}</span></span></span>
 	</div>
 
 		<div class="sift_btn sift_btn_ok">
-			<button class="btn-block" id="check_order">确认采购（<span id="total_count"><{$total.count}></span>）</button>
+			<button class="btn-block" id="check_order">确认采购（<span id="total_count">{{$total['count']}}</span>）</button>
 		</div>
-	</if>
+	@endif
 </div>
 
 
 <!--底栏-->
-<include file="Inc:purchase_bottom"/>
-
+@include('layouts.purchase_bottom')
 
 <script type="text/javascript">
 
@@ -161,7 +160,7 @@ body{position: relative; background: #eee;}
 				ids+=$(this).attr('data-val')+',';
 			}
 		})	
-		window.location.href="<{:U('Purchase/check_order')}>?ids="+ids;
+		window.location.href="{{url('purchase/check_order')}}?ids="+ids;
 	})
 
 	//选择提交订单的商品
@@ -267,7 +266,7 @@ body{position: relative; background: #eee;}
 		$(_this).attr('data-val',update_num);
 
 		$.ajax({
-	        url:"<{:U('Purchase/modify_cart')}>",
+	        url:"{{url('purchase/modify_cart')}}",
 	        type:"POST",
 	        data:{
 	          "id":id,
@@ -277,7 +276,6 @@ body{position: relative; background: #eee;}
 	        dataType:"json",
 	        success:function(data){        		
 	            if(data.status){	
-	            	//$(_this).parentsUntil('.goodsone').find('.goods_stock').html(stock-update_num);
 	            	$(_this).val(update_num);
 	            	$('#item_num_'+id).html('×'+update_num)
 	            	$(_this).parentsUntil('.goodsone').find('.goods_total_price').html((price*update_num).toFixed(2))
@@ -299,7 +297,7 @@ body{position: relative; background: #eee;}
 			    title:'删除商品',
 			    ok: function () {			
 					    $.ajax({
-					        url:"<{:U('Purchase/delete_cart')}>",
+					        url:"{{url('purchase/delete_cart')}}",
 					        type:"POST",
 					        data:{
 					          "id":id
@@ -354,7 +352,7 @@ body{position: relative; background: #eee;}
 				}
 				$(_this).siblings('.text_box').attr('data-val',num);
 				$.ajax({
-			        url:"<{:U('Purchase/modify_cart')}>",
+			        url:"{{url('purchase/modify_cart')}}",
 			        type:"POST",
 			        data:{
 			          "id":id,
@@ -364,7 +362,6 @@ body{position: relative; background: #eee;}
 			        dataType:"json",
 			        success:function(data){        		
 			            if(data.status){		            
-			            	//$(_this).parentsUntil('.goodsone').find('.goods_stock').html(stock);
 			            	$(_this).siblings('.text_box').val(num);
 			            	$('#item_num_'+id).html('×'+num)
 			            	$(_this).parentsUntil('.goodsone').find('.goods_total_price').html((goods_price*num).toFixed(2))

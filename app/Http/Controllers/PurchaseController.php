@@ -33,6 +33,8 @@ class purchaseController extends Controller
 
             $t=$request->input('t')==0 ? 2 : intval($request->input('t'));
 
+            $t = $request->t==0 ? 2 : intval($request->t);
+            // dd($request->t);
             // $class_list=M('pms_class')->where('is_del=0')->order('sort asc')->select();
             $class_list = DB::table('pms_class')->where('is_del','0')->orderBy('sort', 'asc')->get();
             $class_list = objectToArray($class_list);
@@ -64,7 +66,6 @@ class purchaseController extends Controller
             // $this->assign('attr_list',$attr_list);
             // $this->display();
             return view('purchase/index',['title'=>$title,'t'=>$t,'class_name'=>$class_name,'class_list'=>$cl,'attr_list'=>$attr_list,'no_include'=>$no_include]);
-
     
     }
 

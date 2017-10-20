@@ -29,8 +29,12 @@ Route::get('/purchase/order','PurchaseController@order');
 Route::get('/pay/purchase_go_pay','PayController@purchase_go_pay');
 Route::post('/purchase/create_order','PurchaseController@create_order');
 Route::get('/purchase/ajax_get_qualitygoods', 'PurchaseController@ajax_get_qualitygoods');
+<<<<<<< HEAD
 Route::get('/purchase/index', 'PurchaseController@index');
 Route::get('/purchase', 'PurchaseController@index');
+=======
+Route::get('/purchase/index/{t?}', 'PurchaseController@index');
+>>>>>>> 003c6168160d8664757529ea542e32e4100b8efa
 /*Route::get('/biz/ajax_login', function() {
   return View::make('/ajax_login');
 });*/

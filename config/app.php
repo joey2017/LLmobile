@@ -177,7 +177,8 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
-        Encore\Admin\Providers\AdminServiceProvider::class
+        Encore\Admin\Providers\AdminServiceProvider::class,
+        Barryvdh\Debugbar\ServiceProvider::class,
 
     ],
 

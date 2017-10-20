@@ -31,8 +31,6 @@ class purchaseController extends Controller
                 header("Location:".url("biz/login"));
             }
 
-            $t=$request->input('t')==0 ? 2 : intval($request->input('t'));
-
             $t = $request->t==0 ? 2 : intval($request->t);
             // dd($request->t);
             // $class_list=M('pms_class')->where('is_del=0')->order('sort asc')->select();

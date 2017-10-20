@@ -158,7 +158,6 @@ a:focus,a:active, a:hover{color: #333; text-decoration: none;}
 		</div>
 
 		<div class="sort_sele2">
-	
 	    	<ul class="metismenu " id="menu">
 	        @foreach ($class_list as $c)
 	          	<li>
@@ -170,7 +169,7 @@ a:focus,a:active, a:hover{color: #333; text-decoration: none;}
 	            	<ul aria-expanded="false" class="collapse">
 	                  @foreach ($c['item'] as $ci)
 	                		<li @if ($ci['id'] == $t)class="select"@endif>
-	                  			<a href="{{url('Purchase/index',array('t'=>$ci['id']))}}" class="present">{{$ci['class_name']}} <i class="fa fa-angle-right pull-right"></i></a>
+	                  			<a href="{{url('purchase/index',array('t'=>$ci['id']))}}" class="present">{{$ci['class_name']}} <i class="fa fa-angle-right pull-right"></i></a>
 	                		</li>
 	                  @endforeach             	
 	            	</ul>

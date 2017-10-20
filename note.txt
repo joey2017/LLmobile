@@ -171,3 +171,14 @@ public function boot() {
 静态文件路径使用asset('js/app.js');
 
 引入公共头文件@include('layouts.header') 
+
+打印sql语句
+
+方法一：调用vendor\laravel\framework\src\Illuminate\Database\Query的toSql方法：
+$query->toSql();
+
+方法二：开启DB::enableQueryLog();
+
+写公共方法：getLastSql()
+
+打印方法dd(getLastSql());

@@ -26,7 +26,7 @@ Route::get('/purchase/check_order','PurchaseController@check_order');
 Route::get('/purchase/order','PurchaseController@order');
 Route::post('/purchase/create_order','PurchaseController@create_order');
 Route::get('/purchase/ajax_get_qualitygoods', 'PurchaseController@ajax_get_qualitygoods');
-Route::get('/purchase/index', 'PurchaseController@index');
+Route::get('/purchase/index/{t?}', 'PurchaseController@index');
 /*Route::get('/biz/ajax_login', function() {
   return View::make('/ajax_login');
 });*/

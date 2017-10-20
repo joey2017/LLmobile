@@ -474,8 +474,8 @@ class purchaseController extends Controller
         // $goods_cart_info=M('pms_erp_cart')->field('id,number')->where('goods_id='.$cart['goods_id'].' and location_id='.$location_id)->find();
         $goods_cart_info = DB::table('pms_erp_cart')->select('id','number')
         ->where([['goods_id',$cart['goods_id']],['location_id',$location_id]])->first();
-        $goods_cart_info = get_object_vars($goods_cart_info);
         if($goods_cart_info){           
+            $goods_cart_info = get_object_vars($goods_cart_info);
 
             //判断商品库存
             $stock_info = $this->goods_stock_info($cart['goods_id'],$cart['number']);
@@ -897,12 +897,14 @@ class purchaseController extends Controller
 
         if($t == 'pms_merge_order'){
             // $order_info=M('pms_merge_order')->where('id='.$id.' and pay_status=0 and system=0 and location_id='.$location_id)->find();          
-            $order_info = DB::table('pms_merge_order')->where([['id',$id],['pay_status',0],['system',0],['location_id',$location_id]])->first();          
+            $order_info = DB::table('pms_merge_order')->where([['id',$id],['pay_status',0],['system',0],['location_id',$location_id]])->first();
+            $order_info = objectToArray($order_info);
+                      
         }else{
             // $order_info=M('pms_order')->where('id='.$id.' and purchase_user_id=0 and system=0 and location_id='.$location_id)->find();
             $order_info = DB::table('pms_order')->where([['id',$id],['purchase_user_id',0],['system',0],['location_id',$location_id]])->first();          
 
-
+            $order_info = objectToArray($order_info);
             $order_info['pay_type'] = $this->get_pay_type($order_info->means_of_payment,$order_info->pay_type);       
         }
 
@@ -910,7 +912,7 @@ class purchaseController extends Controller
             // $this->error('无此订单信息',U('purchase/index'),3);
             redirect(url('purchase/index'));
         }
-        dd($order_info);
+        // dd($order_info);
         return view('purchase.order',['oi'=>$order_info]);
     }
 

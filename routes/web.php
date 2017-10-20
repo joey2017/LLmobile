@@ -16,6 +16,8 @@ Auth::routes();
 Route::get('/', 'BizController@index');
 Route::get('/biz/entrance', 'BizController@entrance');
 Route::get('/biz/login', 'BizController@login');
+Route::get('/biz/shop_count', 'BizController@shop_count');
+Route::get('/biz/entrance_more/{id}', 'BizController@entrance_more');
 Route::get('/purchase/home', 'PurchaseController@home');
 // Route::get('/purchase/detail/', 'PurchaseController@detail');
 Route::get('/purchase/detail/{id}','PurchaseController@detail');
@@ -24,9 +26,11 @@ Route::post('/purchase/add_card','PurchaseController@add_card');
 Route::get('/purchase/cart','PurchaseController@cart');
 Route::get('/purchase/check_order','PurchaseController@check_order');
 Route::get('/purchase/order','PurchaseController@order');
+Route::get('/pay/purchase_go_pay','PayController@purchase_go_pay');
 Route::post('/purchase/create_order','PurchaseController@create_order');
 Route::get('/purchase/ajax_get_qualitygoods', 'PurchaseController@ajax_get_qualitygoods');
 Route::get('/purchase/index', 'PurchaseController@index');
+Route::get('/purchase', 'PurchaseController@index');
 /*Route::get('/biz/ajax_login', function() {
   return View::make('/ajax_login');
 });*/

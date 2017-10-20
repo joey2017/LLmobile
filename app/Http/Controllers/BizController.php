@@ -89,7 +89,7 @@ class BizController extends Controller
      public function verify()
     {   
         if(!session('account_info')){
-                header("Location:".U("Biz/login"));
+                header("Location:".url("Biz/login"));
             }else{
                 $this->display();
         }   
@@ -310,7 +310,7 @@ class BizController extends Controller
 
     public function order(){        
         if(!session('account_info')){
-            header("Location:".U("Biz/index"));
+            header("Location:".url("Biz/index"));
             exit;
         }
         $account_info=session('account_info');
@@ -401,7 +401,7 @@ class BizController extends Controller
      public function fast_order()
     {
         if(!session('account_info')){
-            header("Location:".U("Biz/index"));
+            header("Location:".url("Biz/index"));
             exit;
         }
         $account_info=session('account_info');
@@ -443,7 +443,7 @@ class BizController extends Controller
     public function member()
     {
         if(!session('account_info')){
-            header("Location:".U("Biz/index"));
+            header("Location:".url("Biz/index"));
             exit;
         }
         $this->display();
@@ -775,62 +775,67 @@ class BizController extends Controller
 
     }
 
-    public function entrance_more(){
-        $id=intval($_REQUEST['id']);
-        $this->assign("n_location_id",$id);
-        $this->display();
+    public function entrance_more(Request $request){
+        $id = $request->id;
+        // $this->assign("n_location_id",$id);
+        // $this->display();
+        return view('biz.entrance_more',["n_location_id"=>$id]);
     }
 
-    public function shop_count(){
+    public function shop_count(Request $request){
         
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
-        $account_info=session('account_info');
+        $account_info = session('account_info');
         
-        $id=intval($_REQUEST['id']);
+        $id = $request->input('id');
 
-        
-        $this->assign('title','车堂盛世-系统托管,解放老板');
+        // $this->assign('title','车堂盛世-系统托管,解放老板');
 
         if($account_info['allow_delivery']=='1'){
-            $w=" in(".implode(',', $account_info['location_ids']).")";
+            $w = " in(".implode(',', $account_info['location_ids']).")";
+            $location_names = DB::table('supplier_location')->select("id","name")->whereIn('id',$account_info['location_ids'])->get();
         }else{
-            $w=" =".$account_info['location_ids'][0];
+            $w = " =".$account_info['location_ids'][0];
+            $location_names = DB::table('supplier_location')->select("id","name")->where('id',$account_info['location_ids'][0])->get();
         }
 
         //门店名称
-        $location_names=M()->query("select id,name from fw_supplier_location where id".$w); 
-
-        if($account_info['allow_delivery']=='1'){
-            $n_location_name='全部门店';
+        if($account_info['allow_delivery'] == '1'){
+            $n_location_name = '全部门店';
         }else{
-            $n_location_name=$location_names[0]['name'];
+            $n_location_name = $location_names[0]->name;
         }
-        $n_location_id='';
+        $n_location_id = '';
 
         if(!in_array($id,$account_info['location_ids'])){
-            $id='';
+            $id = '';
         }else{
-            $w=" =".$id;
-            $n_location_id=$id;
+            $w = " =".$id;
+            $n_location_id = $id;
             foreach ($location_names as $k => $v) {
-                if($v['id']==$id){
-                    $n_location_name=$v['name'];
+                if($v['id'] == $id){
+                    $n_location_name = $v->name;
                 }
             }
         }
 
-
         //今日成交
        $stime = strtotime(date('Y-m-d'));
        $etime = $stime+86399;
-
         
         //今日项目实收
-       $today_project_received=M('erp_order_deal as eod')->join('fw_erp_order as eo on eo.id=eod.order_id')->where(' eod.pay_time between '.$stime.' and '.$etime." and eod.mean_of_payment in('1','2','4','5') and eod.type='0' and eo.is_delete='0' and eo.location_id ".$w)->sum('price');
-       
-        $today_deal=$this->deal_common_sql("%Y-%m-%d",$stime,$etime,$w);    
+       // $today_project_received=M('erp_order_deal as eod')->join('fw_erp_order as eo on eo.id=eod.order_id')->where(' eod.pay_time between '.$stime.' and '.$etime." and eod.mean_of_payment in('1','2','4','5') and eod.type='0' and eo.is_delete='0' and eo.location_id ".$w)->sum('price');
+       DB::enableQueryLog();
+       $today_project_received = DB::table('erp_order_deal as eod')
+       ->leftJoin('erp_order as eo','eo.id','=','eod.order_id')
+       ->whereBetween('eod.pay_time',array($stime,$etime))
+       ->wherIn('eod.mean_of_payment',[1,2,4,5])
+       ->where([['eod.type',0],['eo.is_delete',0],['eo.location_id',$id]])
+       ->sum('price');
+       dd(getLastSql());
+        $today_deal = $this->deal_common_sql("%Y-%m-%d",$stime,$etime,$w);    
         
         //普通销售套餐
         $package_today_deal=M('erp_package_order')->where('location_id '.$w.' and is_delete=0 and buy_time>='.$stime.' and buy_time<='.$etime)->sum('total_price');
@@ -1027,7 +1032,7 @@ class BizController extends Controller
         if(!$n_location_id){
             $n_location_id=$account_info['location_ids'][0];
         }
-
+       $this->assign('title','车堂盛世-系统托管,解放老板');
        $this->assign('today_received',$today_received);
        $this->assign("n_location_id",$n_location_id);
        $this->assign("location_names",$location_names);
@@ -1091,46 +1096,9 @@ class BizController extends Controller
     //shop_count公共方法
     private function deal_common_sql($sel_sql,$stime,$etime,$w){
 
-        // $item_sql="select eo.id,eo.total_price,eo.total_original_price,eo.pay_amount,eo.pay_status,eoi.type,FROM_UNIXTIME(eo.bill_time,'".$sel_sql."') as billtime,eoi.sell_price,eoi.num,eoi.costs from fw_erp_order as eo  left join fw_erp_order_item as eoi on eoi.order_id=eo.id where eo.status='4' and eo.is_delete='0' and eo.location_id ".$w." and eo.bill_time>=".$stime." and eo.bill_time<=".$etime;
-        // //订单详情数组
-        // $item_deal=M()->query($item_sql);
+        $select_sql="select feo.id,feo.order_sn,feo.total_price,feo.pay_amount,feo.bill_time,feod.pay_time,feod.price,feod.mean_of_payment,FROM_UNIXTIME(feo.bill_time,?) as billtime,FROM_UNIXTIME(feod.pay_time,?) as paytime FROM fw_erp_order as feo left join fw_erp_order_deal as feod on feod.order_id=feo.id where feo.location_id= ? and feo.is_delete=? and feod.type=? and (feo.bill_time between ".$stime." and ".$etime." or feod.pay_time between ".$stime." and ".$etime.") or (feo.bill_time between ".$stime." and ".$etime." and feod.id is null and feo.location_id=? and feo.is_delete=? and feo.status=?)";
         
-        // foreach ($item_deal as $k => $v) {
-        //  $new_item_deal[$v['billtime']][$v['id']]['total_price']=$v['total_price'];//订单总金额               
-        //  $deal_ids[$v['billtime']][$v['id']]=$v['id'];
-        //  $has_ids[]=$v['id'];
-                        
-        // }
-
-        // $order_sql="select eo.id,eo.total_price,eo.total_original_price,eo.pay_amount,eo.pay_status,eod.mean_of_payment,eod.price,FROM_UNIXTIME(eod.pay_time,'".$sel_sql."') as paytime,FROM_UNIXTIME(eo.bill_time,'".$sel_sql."') as billtime from fw_erp_order as eo left join fw_erp_order_deal as eod on eod.order_id=eo.id where eo.status='4' and eo.is_delete='0'  and  eo.location_id ".$w." and ( (eod.pay_time>=".$stime." and eod.pay_time<=".$etime." and eod.type='0' and eo.pay_status='1') or (eod.pay_time>=".$stime." and eod.pay_time<=".$etime." and eod.type='0' and eo.bill_time>=".$stime." and eo.bill_time<=".$etime." and eo.pay_status='0') ) ";
-        
-        // //订单已支付明细数组
-        // $order_deal=M()->query($order_sql);
-        // foreach ($order_deal as $k => $v) {      
-        //  $new_order_deal[$v['paytime']][$v['id']]['total_price']=$v['total_price'];//订单总金额               
-        //  if(!in_array($v['id'],$has_ids))
-        //  $deal_ids[$v['paytime']][$v['id']]=$v['id'];
-        //  if($v['mean_of_payment']==8||$v['mean_of_payment']==9){
-        //      $new_order_deal[$v['paytime']][$v['id']]['offset_price']+=$v['price'];//抵扣金额
-        //  }
-        // }            
-        
-        // //先提取挂单订单数据,再提取交易数组数据
-        // foreach ($deal_ids as $key => $val) {
-        //  foreach ($val as $k => $v) {
-        //      $item_new_list[$key]['order_count']++;
-        //      if($new_item_deal[$key][$v]){//挂单的
-        //          $order_item=$new_item_deal[$key][$v];
-        //          $item_new_list[$key]['total_price']+=$order_item['total_price']-$new_order_deal[$key][$v]['offset_price'];//总金额             
-        //      }else{
-        //          $deal_item=$new_order_deal[$key][$v];
-        //          $item_new_list[$key]['total_price']+=$deal_item['total_price']-$deal_item['offset_price'];//总金额             
-        //      }
-        //  }
-        // }
-        $select_sql="select feo.id,feo.order_sn,feo.total_price,feo.pay_amount,feo.bill_time,feod.pay_time,feod.price,feod.mean_of_payment,FROM_UNIXTIME(feo.bill_time,'".$sel_sql."') as billtime,FROM_UNIXTIME(feod.pay_time,'".$sel_sql."') as paytime FROM fw_erp_order as feo left join fw_erp_order_deal as feod on feod.order_id=feo.id where feo.location_id ".$w." and feo.is_delete='0' and feod.type='0' and (feo.bill_time between ".$stime." and ".$etime." or feod.pay_time between ".$stime." and ".$etime.") or (feo.bill_time between ".$stime." and ".$etime." and feod.id is null and feo.location_id ".$w." and feo.is_delete='0' and feo.status='4')";
-        
-        $order_deal_list=M()->query($select_sql);
+        $order_deal_list = DB::select($select_sql,[$sel_sql,$sel_sql,$w,0,0,$stime,$etime,$stime,$etime,$stime,$etime,$w,0,4]);
     
         //$item_new_list['order_count']=0;
         foreach ($order_deal_list as $k => $v) {
@@ -1170,7 +1138,7 @@ class BizController extends Controller
     //销卡统计
     public function sell_card(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $account_info=session('account_info');
         
@@ -1229,7 +1197,7 @@ class BizController extends Controller
     /*//历史成交
     public function old_deal(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $account_info=session('account_info');
         //$location_id=$account_info['location_ids'][0];
@@ -1261,7 +1229,7 @@ class BizController extends Controller
 
     public function project_deal(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $account_info=session('account_info');
 
@@ -1329,7 +1297,7 @@ class BizController extends Controller
 
     public function pay_type(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $account_info=session('account_info');
 
@@ -1401,7 +1369,7 @@ class BizController extends Controller
     //今日付款方式统计
     public function today_pay_type(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $account_info=session('account_info');      
         $id=intval($_REQUEST['id']);
@@ -1477,7 +1445,7 @@ class BizController extends Controller
     //月度计划
     public function month_plan(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $account_info=session('account_info');
 
@@ -1598,7 +1566,7 @@ class BizController extends Controller
 
     public function erp_verify(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $this->assign('title','预约验证');
         $this->display();
@@ -1697,7 +1665,7 @@ class BizController extends Controller
     //查看员工提成
     public function employee_commission(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $account_info=session('account_info');
 
@@ -1800,7 +1768,7 @@ class BizController extends Controller
     //收入列表
     public function income(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
 
         $pms_supplier=session('account_info');      
@@ -1867,7 +1835,7 @@ class BizController extends Controller
     //发展门店列表
     public function location(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
 
         $pms_supplier=session('account_info');
@@ -2012,7 +1980,7 @@ class BizController extends Controller
         // }else{
 
             if(!session('account_info')){
-                header("Location:".U("Biz/login"));
+                header("Location:".url("Biz/login"));
             }
 
             //登录信息
@@ -2057,7 +2025,7 @@ class BizController extends Controller
     //门店晒单
     public function shaidan(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $account_info=session('account_info');
 
@@ -2109,7 +2077,7 @@ class BizController extends Controller
     public function get_cate2_list(){
 
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
 
         $cate1_id = intval($_POST['cate1_id']);
@@ -2177,7 +2145,7 @@ class BizController extends Controller
     private function get_count(){
 
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $account_info=session('account_info');
         $location_id=$account_info['location_ids'][0];
@@ -2219,7 +2187,7 @@ class BizController extends Controller
 
     public function ajax_get_purchase(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $account_info=session('account_info');
         $location_id=$account_info['location_ids'][0];
@@ -2264,7 +2232,7 @@ class BizController extends Controller
 
     public function purchase_detail(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $id=intval($_REQUEST['id']);
         $account_info=session('account_info');
@@ -2408,7 +2376,7 @@ class BizController extends Controller
     //微信授权、用于采购系统推送消息
     public function authorizes(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
 
         $account_info=session('account_info');
@@ -2420,7 +2388,7 @@ class BizController extends Controller
         $open_id=session('oprate_opend_id');
         if(!$open_id){
             $refererUrl = U('Biz/authorizes'); //登录前一个页面的Url     
-            $redirectUrl = urlencode(DOMAIN_URL.U('Agent/OAuth_wx'));  //授权后重定向的回调链接地址，请使用urlencode对链接进行处理 
+            $redirectUrl = urlencode(DOMAIN_URL.url('Agent/OAuth_wx'));  //授权后重定向的回调链接地址，请使用urlencode对链接进行处理 
             $Url = "https://open.weixin.qq.com/connect/oauth2/authorize?appid=wxb09359ac1d3f2267&redirect_uri=".$redirectUrl."&response_type=code&scope=snsapi_base&state=".$refererUrl."#wechat_redirect";
             header("Location:".$Url);
         }
@@ -2505,7 +2473,7 @@ class BizController extends Controller
     //门店查看预约列表
     public function reservation_list(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $this->assign('title','预约列表');
         $this->display();
@@ -2571,7 +2539,7 @@ class BizController extends Controller
     //我的
     public function my_home(){
         if(!session('account_info')){
-            header("Location:".U("Biz/login"));
+            header("Location:".url("Biz/login"));
         }
         $this->assign('title','我的');
         $this->display();

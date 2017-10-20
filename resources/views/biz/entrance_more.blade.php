@@ -1,4 +1,4 @@
-<include file="Inc:header"/>
+@include('layouts.header')
 
 </head>
 
@@ -9,8 +9,8 @@
     /*筛选框*/
     .screen_btn{ font-size: 16px;}
     .screen_btn span,.refreshico{display: inline-block; width: 24px; height: 19px;vertical-align: middle;}
-    .screen_btn span{background: url(__PUBLIC__/images/bossico.svg) no-repeat 6px 0; background-size: 35px;}
-    .refreshico{background: url(__PUBLIC__/images/bossico.svg) no-repeat -23px -1px; background-size: 48px;}
+    .screen_btn span{background: url({{asset('images/bossico.svg')}}) no-repeat 6px 0; background-size: 35px;}
+    .refreshico{background: url({{asset('images/bossico.svg')}}) no-repeat -23px -1px; background-size: 48px;}
 
     .screenbox{ position: absolute; width: 100%; padding:10px; top: 50px; left: 0; color: #4C4C4C; font-size: 14px; background:#fff; display: none; border-bottom: 1px solid #eee;}
     .screenbox dl{margin-bottom: 3px;}
@@ -35,11 +35,11 @@
 
     .data_btn span{display: block;width: 50px;height: 50px; margin: 15px auto 7px auto; border-radius: 50%;}
 
-    .da_btn8{ background: url(__PUBLIC__/images/bossico2.svg) no-repeat -160px -56px;background-size: 230px;background-color:#88AFF3;}
-    .da_btn9{ background: url(__PUBLIC__/images/bossico2.svg) no-repeat -2px -104px;background-size: 230px;background-color:#F3B088;}
-    .da_btn10{ background: url(__PUBLIC__/images/bossico2.svg) no-repeat -55px -103px;background-size: 230px;background-color:#9B88CA;}
-    .da_btn15{ background: url(__PUBLIC__/images/authorize.svg) no-repeat 8px 7px;background-size: 34px;background-color:#34c566;}
-    /*.da_btn13{ background: url(__PUBLIC__/images/purchase_order.svg) no-repeat 8px 7px;background-size: 34px;background-color:#7ec7f7;}*/
+    .da_btn8{ background: url({{asset('images/bossico2.svg')}}) no-repeat -160px -56px;background-size: 230px;background-color:#88AFF3;}
+    .da_btn9{ background: url({{asset('images/bossico2.svg')}}) no-repeat -2px -104px;background-size: 230px;background-color:#F3B088;}
+    .da_btn10{ background: url({{asset('images/bossico2.svg')}}) no-repeat -55px -103px;background-size: 230px;background-color:#9B88CA;}
+    .da_btn15{ background: url({{asset('images/authorize.svg')}}) no-repeat 8px 7px;background-size: 34px;background-color:#34c566;}
+    /*.da_btn13{ background: url({{asset('images/purchase_order.svg')}}) no-repeat 8px 7px;background-size: 34px;background-color:#7ec7f7;}*/
 
 </style>
 
@@ -58,31 +58,31 @@
 <!--服务券-->
 <div class="box-flex text-center">
     <div class="flex1 data_btn data_rb">
-        <a href="<{:U('Biz/authorize',array('id'=>$n_location_id))}>">
+        <a href="{{url('biz/authorize',array('id'=>$n_location_id))}}">
             <span class="da_btn15"></span>
             <p>推送授权</p>
         </a>
     </div>
     <div class="flex1 data_btn data_rb">
-        <a href="<{:U('Biz/myagent',array('id'=>$n_location_id))}>">
+        <a href="{{url('biz/myagent',array('id'=>$n_location_id))}}">
             <span class="da_btn10"></span>
             <p>代理推广</p>
         </a>
     </div>
     <div class="flex1 data_btn data_rb">
-        <a href="<{:U('Biz/income',array('id'=>$n_location_id))}>">
+        <a href="{{url('biz/income',array('id'=>$n_location_id))}}">
             <span class="da_btn8"></span>
             <p>代理收入</p>
         </a>
     </div>
     <!-- <div class="flex1 data_btn data_rb">
-        <a href="<{:U('Biz/purchase_order',array('id'=>$n_location_id))}>">
+        <a href="{{url('biz/purchase_order',array('id'=>$n_location_id))}}">
             <span class="da_btn13"></span>
             <p>采购订单</p>
         </a>
     </div> -->
     <div class="flex1 data_btn data_rb">
-        <a href="<{:U('Biz/location',array('id'=>$n_location_id))}>">
+        <a href="{{url('biz/location',array('id'=>$n_location_id))}}">
             <span class="da_btn9"></span>
             <p>发展门店</p>
         </a>
